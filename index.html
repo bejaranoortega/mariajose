@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Entradas</title>
+<style>
+  :root{
+    --bg-1: #fdf2f6;
+    --bg-2: #fbe6ee;
+    --panel: #ffffff;
+    --panel-soft: #fff5f9;
+    --border: #f3d3e0;
+    --text: #4a2635;
+    --text-dim: #a9738b;
+    --accent: #d6558c;
+    --accent-deep: #b6396f;
+    --accent-light: #f7c9dc;
+    --ok: #4caf7d;
+    --ok-bg: #e7f6ee;
+    --ok-border: #b9e3ca;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(900px 500px at 90% -10%, rgba(214,85,140,0.10), transparent 60%),
+      radial-gradient(700px 400px at -10% 20%, rgba(214,85,140,0.08), transparent 55%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-2) 400px, var(--bg-1) 100%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg fill='%23e8709f' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='10'/%3E%3Ccircle cx='45' cy='22' r='6'/%3E%3Ccircle cx='20' cy='45' r='5'/%3E%3Cpath d='M30 30 q8 -14 16 0 q-8 6 -16 0Z'/%3E%3C/g%3E%3Cg fill='%23e8709f' fill-opacity='0.045'%3E%3Ccircle cx='150' cy='120' r='12'/%3E%3Ccircle cx='168' cy='110' r='7'/%3E%3Ccircle cx='140' cy='140' r='6'/%3E%3Cpath d='M150 120 q9 -16 18 0 q-9 7 -18 0Z'/%3E%3C/g%3E%3Cg fill='%23e8709f' fill-opacity='0.04'%3E%3Ccircle cx='190' cy='40' r='7'/%3E%3Ccircle cx='60' cy='180' r='9'/%3E%3Ccircle cx='75' cy='170' r='5'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-attachment: fixed;
+    color:var(--text);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    min-height:100vh;
+    padding:0 0 60px 0;
+  }
+
+  .deco-corner{
+    position:absolute; pointer-events:none; opacity:0.9; z-index:0;
+  }
+  .deco-tl{ top:0; left:0; }
+  .deco-tr{ top:0; right:0; transform: scaleX(-1); }
+
+  header{
+    position:sticky; top:0; z-index:20;
+    background:
+      rgba(253,242,246,0.92)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='%23e8709f' fill-opacity='0.07'%3E%3Ccircle cx='20' cy='20' r='8'/%3E%3Ccircle cx='34' cy='13' r='5'/%3E%3Cpath d='M20 20 q7 -12 14 0 q-7 5 -14 0Z'/%3E%3C/g%3E%3Cg fill='%23e8709f' fill-opacity='0.06'%3E%3Ccircle cx='110' cy='90' r='9'/%3E%3Ccircle cx='126' cy='82' r='5'/%3E%3Cpath d='M110 90 q8 -13 16 0 q-8 5 -16 0Z'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
+    backdrop-filter: blur(10px);
+    border-bottom:1px solid var(--border);
+    padding:20px 24px 16px;
+  }
+  .header-top{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;
+    position:relative; z-index:2;
+  }
+  .title-block{ display:flex; align-items:center; gap:12px; }
+  .title-block h1{
+    margin:0; font-size:1.5rem; font-weight:700; letter-spacing:0.2px; color:var(--accent-deep);
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+  .title-block .eyebrow{
+    color:var(--accent); font-size:0.72rem; text-transform:uppercase; letter-spacing:1.8px; font-weight:700;
+    margin-bottom:3px; display:block;
+  }
+  .save-indicator{
+    font-size:0.75rem; color:var(--text-dim); display:flex; align-items:center; gap:6px;
+    white-space:nowrap; padding-top:4px;
+  }
+  .save-dot{
+    width:7px; height:7px; border-radius:50%; background:var(--ok); flex-shrink:0;
+    box-shadow:0 0 0 0 rgba(76,175,125,0.5);
+    animation: pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(76,175,125,0.45);}
+    70%{box-shadow:0 0 0 6px rgba(76,175,125,0);}
+    100%{box-shadow:0 0 0 0 rgba(76,175,125,0);}
+  }
+
+  .stats-row{
+    display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; position:relative; z-index:2;
+  }
+  .stat-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:10px 16px; min-width:110px; flex:1;
+    box-shadow: 0 2px 10px rgba(182,57,111,0.06);
+  }
+  .stat-card .num{ font-size:1.55rem; font-weight:700; line-height:1.1; }
+  .stat-card .lbl{ font-size:0.68rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-top:2px;}
+  .stat-card.entraron .num{ color:var(--ok); }
+  .stat-card.faltan .num{ color:var(--accent); }
+
+  .progress-track{
+    margin-top:14px; height:8px; background:var(--panel-soft); border-radius:6px; overflow:hidden; border:1px solid var(--border);
+    position:relative; z-index:2;
+  }
+  .progress-fill{
+    height:100%; background:linear-gradient(90deg, var(--accent-light), var(--accent));
+    width:0%; transition: width 0.35s ease;
+  }
+
+  .controls{
+    margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    position:relative; z-index:2;
+  }
+  .search-wrap{
+    flex:1; min-width:200px; position:relative;
+  }
+  .search-wrap input{
+    width:100%; padding:11px 14px 11px 36px; border-radius:10px; border:1px solid var(--border);
+    background:var(--panel); color:var(--text); font-size:0.92rem; outline:none;
+  }
+  .search-wrap input:focus{ border-color:var(--accent); }
+  .search-wrap svg{
+    position:absolute; left:11px; top:50%; transform:translateY(-50%); opacity:0.55; pointer-events:none; color:var(--accent-deep);
+  }
+  select, .btn{
+    padding:11px 14px; border-radius:10px; border:1px solid var(--border);
+    background:var(--panel); color:var(--text); font-size:0.85rem; cursor:pointer;
+  }
+  .btn{
+    font-weight:600; transition: background 0.15s, border-color 0.15s;
+  }
+  .btn:hover{ background:var(--panel-soft); border-color:var(--accent-light); }
+  .btn.danger{ color:#c14b6a; }
+  .btn.danger:hover{ border-color:#c14b6a; background:#fdeef1; }
+
+  main{
+    padding:22px 24px;
+    max-width:900px;
+    margin:0 auto;
+    position:relative; z-index:2;
+  }
+
+  .list{
+    display:flex; flex-direction:column; gap:9px;
+  }
+  .guest{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:13px 16px; cursor:pointer; user-select:none;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    box-shadow: 0 1px 6px rgba(182,57,111,0.05);
+  }
+  .guest:hover{ border-color:var(--accent-light); transform: translateY(-1px); }
+  .guest.checked{
+    background: var(--ok-bg);
+    border-color: var(--ok-border);
+  }
+  .guest-left{
+    display:flex; align-items:center; gap:12px; min-width:0;
+  }
+  .checkbox{
+    width:23px; height:23px; border-radius:8px; border:2px solid var(--accent-light);
+    flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    transition: all 0.15s;
+  }
+  .guest.checked .checkbox{
+    background:var(--ok); border-color:var(--ok);
+  }
+  .checkbox svg{ opacity:0; transition:opacity 0.15s; }
+  .guest.checked .checkbox svg{ opacity:1; }
+  .guest-name{
+    font-size:0.97rem; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    min-width:0;
+  }
+  .guest.checked .guest-name{ color:#5c8b71; text-decoration: line-through; text-decoration-color: var(--ok-border); }
+  .guest-time{
+    font-size:0.72rem; color:var(--text-dim); flex-shrink:0; white-space:nowrap;
+    text-align:right;
+  }
+  .guest-time .count-line{
+    display:block; font-weight:700; color:var(--accent-deep); font-size:0.76rem;
+  }
+
+  .badge{
+    font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:20px;
+    background:var(--accent-light); color:var(--accent-deep); flex-shrink:0;
+    white-space:nowrap;
+  }
+  .guest.checked .badge{ background:var(--ok-border); color:#2f6b48; }
+
+  @keyframes popCheck{
+    0%{ transform:scale(1); }
+    30%{ transform:scale(1.18) rotate(-3deg); }
+    55%{ transform:scale(0.94) rotate(2deg); }
+    100%{ transform:scale(1) rotate(0); }
+  }
+  .guest.just-checked{ animation: popCheck 0.5s ease; }
+
+  .confetti-piece{
+    position:fixed; z-index:999; pointer-events:none; font-size:20px;
+    animation: confettiFly 0.9s ease-out forwards;
+  }
+  @keyframes confettiFly{
+    0%{ transform: translate(0,0) rotate(0deg) scale(1); opacity:1; }
+    100%{ transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.6); opacity:0; }
+  }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(74,38,53,0.45); z-index:100;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    backdrop-filter: blur(2px);
+  }
+  .modal-box{
+    background:var(--panel); border-radius:18px; padding:24px; max-width:340px; width:100%;
+    box-shadow: 0 12px 40px rgba(74,38,53,0.25); border:1px solid var(--border);
+    animation: modalIn 0.25s ease;
+  }
+  @keyframes modalIn{
+    0%{ transform: translateY(12px) scale(0.96); opacity:0; }
+    100%{ transform: translateY(0) scale(1); opacity:1; }
+  }
+  .modal-box h3{ margin:0 0 4px; color:var(--accent-deep); font-family: Georgia, serif; }
+  .modal-box .modal-name{ color:var(--text-dim); font-size:0.85rem; margin:0 0 16px; }
+  .modal-box label{ font-size:0.78rem; color:var(--text-dim); display:block; margin-bottom:6px; }
+  .modal-box input[type=number]{
+    width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--border);
+    font-size:1.4rem; text-align:center; font-weight:700; color:var(--accent-deep); outline:none;
+  }
+  .modal-box input[type=number]:focus{ border-color:var(--accent); }
+  .modal-actions{ display:flex; gap:10px; margin-top:18px; }
+  .modal-actions button{
+    flex:1; padding:11px; border-radius:10px; border:1px solid var(--border); cursor:pointer;
+    font-weight:600; font-size:0.85rem;
+  }
+  .modal-actions .confirm{ background:var(--accent); color:white; border-color:var(--accent); }
+  .modal-actions .confirm:hover{ background:var(--accent-deep); }
+  .modal-actions .cancel{ background:var(--panel); color:var(--text-dim); }
+  .modal-actions .cancel:hover{ background:var(--panel-soft); }
+
+  .empty-state{
+    text-align:center; padding:60px 20px; color:var(--text-dim);
+  }
+
+  .shared-note{
+    max-width:900px; margin:14px auto 0; padding:0 24px;
+    font-size:0.72rem; color:var(--text-dim); position:relative; z-index:2;
+  }
+
+  footer{
+    text-align:center; padding:24px; color:var(--text-dim); font-size:0.72rem; position:relative; z-index:2;
+  }
+
+  @media (max-width:520px){
+    header{ padding:16px 16px 14px; }
+    main{ padding:16px; }
+    .stat-card{ min-width:90px; padding:8px 12px; }
+    .stat-card .num{ font-size:1.3rem; }
+    .deco-corner{ width:70px; }
+  }
+</style>
+</head>
+<body>
+
+<svg class="deco-corner deco-tl" width="120" height="120" viewBox="0 0 120 120" fill="none">
+  <path d="M10 10 C30 30, 20 55, 45 60 C25 65, 15 90, 30 110" stroke="#e59cbf" stroke-width="2" fill="none" opacity="0.6"/>
+  <circle cx="22" cy="20" r="9" fill="#f2b8d3" opacity="0.85"/>
+  <circle cx="34" cy="14" r="6" fill="#e08cb5" opacity="0.85"/>
+  <circle cx="14" cy="34" r="5" fill="#f7d1e3" opacity="0.85"/>
+  <circle cx="46" cy="66" r="8" fill="#f2b8d3" opacity="0.7"/>
+  <circle cx="34" cy="92" r="6" fill="#e08cb5" opacity="0.7"/>
+  <path d="M20 22 q6 -10 12 0 q-6 4 -12 0Z" fill="#c65f8f" opacity="0.5"/>
+</svg>
+<svg class="deco-corner deco-tr" width="120" height="120" viewBox="0 0 120 120" fill="none">
+  <path d="M10 10 C30 30, 20 55, 45 60 C25 65, 15 90, 30 110" stroke="#e59cbf" stroke-width="2" fill="none" opacity="0.6"/>
+  <circle cx="22" cy="20" r="9" fill="#f2b8d3" opacity="0.85"/>
+  <circle cx="34" cy="14" r="6" fill="#e08cb5" opacity="0.85"/>
+  <circle cx="14" cy="34" r="5" fill="#f7d1e3" opacity="0.85"/>
+  <circle cx="46" cy="66" r="8" fill="#f2b8d3" opacity="0.7"/>
+  <circle cx="34" cy="92" r="6" fill="#e08cb5" opacity="0.7"/>
+</svg>
+
+<header>
+  <div class="header-top">
+    <div class="title-block">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
+        <path d="M12 21c-4-3-8-6.5-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 3.5C20 14.5 16 18 12 21Z" fill="#e8709f" opacity="0.9"/>
+      </svg>
+      <div>
+        <span class="eyebrow">Control de acceso</span>
+        <h1>Lista de invitados</h1>
+      </div>
+    </div>
+    <div class="save-indicator" id="saveIndicator">
+      <span class="save-dot"></span>
+      <span id="saveText">Sincronizado con el equipo</span>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card entraron">
+      <div class="num" id="statEntraron">0</div>
+      <div class="lbl">Entraron</div>
+    </div>
+    <div class="stat-card faltan">
+      <div class="num" id="statFaltan">0</div>
+      <div class="lbl">Faltan</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="statTotal">0</div>
+      <div class="lbl">Total invitaciones</div>
+    </div>
+    <div class="stat-card entraron">
+      <div class="num" id="statPersonas">0</div>
+      <div class="lbl">Personas dentro</div>
+    </div>
+  </div>
+
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div class="controls">
+    <div class="search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="searchInput" placeholder="Buscar invitado...">
+    </div>
+    <select id="filterSelect">
+      <option value="todos">Todos</option>
+      <option value="entraron">Entraron</option>
+      <option value="faltan">Faltan</option>
+    </select>
+    <button class="btn" id="printBtn">🖨️ Imprimir entradas</button>
+    <button class="btn danger" id="resetBtn">Reiniciar lista</button>
+  </div>
+</header>
+
+<p class="shared-note">Esta lista es compartida: cualquier persona que abra este archivo y marque una entrada, la verán todos los demás en unos segundos.</p>
+
+<main>
+  <div class="list" id="list"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">No se encontraron invitados con ese criterio.</div>
+</main>
+
+<div class="modal-overlay" id="familyModal" style="display:none;">
+  <div class="modal-box">
+    <h3>¿Cuántos llegaron? 🎉</h3>
+    <p class="modal-name" id="modalGuestName"></p>
+    <label for="modalCountInput">Número de personas</label>
+    <input type="number" id="modalCountInput" min="1" value="3">
+    <div class="modal-actions">
+      <button class="cancel" id="modalCancelBtn">Cancelar</button>
+      <button class="confirm" id="modalConfirmBtn">Confirmar entrada</button>
+    </div>
+  </div>
+</div>
+
+<footer>Evento · lista compartida entre todos los encargados de la entrada</footer>
+
+<script>
+const NAMES = [
+"arley","Arnolis","Breiner","Camilo y sofia","coco y familia","darlis","Dedier","Dileidy",
+"Doña Elvia","Doña Lina","Eduar y familia","ellen","Eloina Acosta","Enilda y familia",
+"Familia Bejarano Ortega","Gildardo y familia","gladis y esposo","isabella","Isela y familia",
+"Jader y leslie","Jair y familia","Jamir y familia","Jessica y familia","jhey r.","Jilber",
+"Jisela y familia","johan camilo","Jorge y familia","Juan david","Karen","Kelly acosta",
+"Kety acosta","Kevin","ladys y esposo","ledys","Mafe y tiffany","Marcela y Familia",
+"Marcilia y familia","Mari Sofia","Maria y familia","Maryoris y familia","Mayerli y michelle",
+"Mayerli","meraris","Michelle dayana","Milca y esposo","Nayibis y familia","Orlando y familia",
+"panfido y erlinda","Rosa y familia","Sandy y familia","Sara","Scarleth","Soris y familia",
+"steven","Tatiana","Tia esperanza y familia","Tia lolita y familia","Tia nuris y familia",
+"tia rocio y familia","Tio Nestor y familia","Tio Ricardo y familia","veronica",
+"Vivas Bejarano","Wendy","yacer","Yaser","Viny y familia","Yomara","yuber y diego",
+"Yuliana","Yulis y geids"
+];
+
+const STORAGE_KEY = 'evento_checkin_v1';
+const SHARED = true; // lista compartida entre todos los dispositivos
+let state = {};
+let saveTimeout = null;
+let pollInterval = null;
+let searchHasFocus = false;
+let pendingFamilyName = null;
+
+// Clasifica cada invitación para saber cuántas personas representa
+function classifyGuest(name){
+  const lower = name.toLowerCase();
+  if(lower.startsWith('familia ') || / y familia\b/.test(lower)){
+    return { type:'familia', defaultCount:null, label:'grupo' };
+  }
+  if(/ y /.test(lower)){
+    return { type:'pareja', defaultCount:2, label:'2 personas' };
+  }
+  return { type:'individual', defaultCount:1, label:'1 persona' };
+}
+
+function initState(){
+  NAMES.forEach(n => {
+    if(!state[n]){
+      const info = classifyGuest(n);
+      state[n] = { checked:false, time:null, count: info.type === 'familia' ? null : info.defaultCount };
+    }
+  });
+}
+
+async function loadState(silent){
+  try{
+    const result = await window.storage.get(STORAGE_KEY, SHARED);
+    if(result && result.value){
+      state = JSON.parse(result.value);
+    }
+  }catch(e){
+    // aun no hay datos guardados
+  }
+  initState();
+  render();
+  if(!silent){
+    startPolling();
+  }
+}
+
+function startPolling(){
+  if(pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(() => {
+    if(!searchHasFocus){
+      loadState(true);
+    }
+  }, 4000);
+}
+
+function scheduleSave(){
+  const indicator = document.getElementById('saveText');
+  indicator.textContent = 'Guardando...';
+  if(saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    try{
+      await window.storage.set(STORAGE_KEY, JSON.stringify(state), SHARED);
+      indicator.textContent = 'Sincronizado con el equipo';
+    }catch(e){
+      indicator.textContent = 'Error al guardar, reintentando...';
+      setTimeout(scheduleSave, 1500);
+    }
+  }, 300);
+}
+
+function toggle(name, event){
+  const info = classifyGuest(name);
+  const g = state[name];
+
+  if(info.type === 'familia'){
+    if(g.checked){
+      // desmarcar directo, sin preguntar
+      g.checked = false;
+      g.time = null;
+      scheduleSave();
+      render();
+    } else {
+      openFamilyModal(name, event);
+    }
+    return;
+  }
+
+  // individual o pareja: conteo fijo, se marca directo
+  g.checked = !g.checked;
+  g.time = g.checked ? new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'}) : null;
+  scheduleSave();
+  render();
+  if(g.checked){
+    celebrate(event);
+    bounceRow(name);
+  }
+}
+
+function openFamilyModal(name, event){
+  pendingFamilyName = name;
+  pendingFamilyEvent = event;
+  document.getElementById('modalGuestName').textContent = name;
+  const input = document.getElementById('modalCountInput');
+  input.value = state[name].count || 3;
+  document.getElementById('familyModal').style.display = 'flex';
+  setTimeout(() => input.select(), 50);
+}
+
+function closeFamilyModal(){
+  document.getElementById('familyModal').style.display = 'none';
+  pendingFamilyName = null;
+}
+
+function confirmFamilyModal(){
+  const name = pendingFamilyName;
+  if(!name) return;
+  const val = parseInt(document.getElementById('modalCountInput').value, 10);
+  const count = (isNaN(val) || val < 1) ? 1 : val;
+  state[name].checked = true;
+  state[name].count = count;
+  state[name].time = new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'});
+  scheduleSave();
+  const ev = pendingFamilyEvent;
+  closeFamilyModal();
+  render();
+  celebrate(ev);
+  bounceRow(name);
+}
+
+let pendingFamilyEvent = null;
+
+function bounceRow(name){
+  requestAnimationFrame(() => {
+    const rows = document.querySelectorAll('.guest');
+    rows.forEach(r => {
+      if(r.dataset.name === name){
+        r.classList.add('just-checked');
+        setTimeout(() => r.classList.remove('just-checked'), 500);
+      }
+    });
+  });
+}
+
+// Pequena explosion de confeti / corazones al confirmar una entrada
+function celebrate(event){
+  const emojis = ['🎉','💕','✨','🌸','💗'];
+  let x = window.innerWidth / 2;
+  let y = window.innerHeight / 2;
+  if(event && event.clientX){
+    x = event.clientX;
+    y = event.clientY;
+  }
+  const count = 10;
+  for(let i = 0; i < count; i++){
+    const piece = document.createElement('span');
+    piece.className = 'confetti-piece';
+    piece.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+    const dist = 60 + Math.random() * 70;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist - 30;
+    piece.style.left = x + 'px';
+    piece.style.top = y + 'px';
+    piece.style.setProperty('--dx', dx + 'px');
+    piece.style.setProperty('--dy', dy + 'px');
+    piece.style.setProperty('--rot', (Math.random() * 360 - 180) + 'deg');
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 950);
+  }
+}
+
+function render(){
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filter = document.getElementById('filterSelect').value;
+  const list = document.getElementById('list');
+  const emptyState = document.getElementById('emptyState');
+
+  let names = NAMES.filter(n => n.toLowerCase().includes(search));
+  if(filter === 'entraron') names = names.filter(n => state[n].checked);
+  if(filter === 'faltan') names = names.filter(n => !state[n].checked);
+
+  list.innerHTML = '';
+  if(names.length === 0){
+    emptyState.style.display = 'block';
+  } else {
+    emptyState.style.display = 'none';
+    names.forEach(n => {
+      const g = state[n];
+      const info = classifyGuest(n);
+      const div = document.createElement('div');
+      div.className = 'guest' + (g.checked ? ' checked' : '');
+      div.dataset.name = n;
+      div.onclick = (ev) => toggle(n, ev);
+
+      let badgeText;
+      if(info.type === 'familia'){
+        badgeText = g.checked ? (g.count + (g.count === 1 ? ' persona' : ' personas')) : 'grupo';
+      } else {
+        badgeText = info.label;
+      }
+
+      const timeBlock = g.checked
+        ? `<span class="count-line">${info.type === 'familia' ? (g.count + ' 👥') : ''}</span>${g.time}`
+        : '';
+
+      div.innerHTML = `
+        <div class="guest-left">
+          <div class="checkbox">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <div class="guest-name">${escapeHtml(n)}</div>
+          <span class="badge">${badgeText}</span>
+        </div>
+        <div class="guest-time">${timeBlock}</div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  updateStats();
+}
+
+function updateStats(){
+  const total = NAMES.length;
+  const entraron = NAMES.filter(n => state[n].checked).length;
+  const faltan = total - entraron;
+  const personas = NAMES.reduce((sum, n) => sum + (state[n].checked ? (state[n].count || 1) : 0), 0);
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statEntraron').textContent = entraron;
+  document.getElementById('statFaltan').textContent = faltan;
+  document.getElementById('statPersonas').textContent = personas;
+  document.getElementById('progressFill').style.width = (total ? (entraron/total*100) : 0) + '%';
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+document.getElementById('searchInput').addEventListener('input', render);
+document.getElementById('searchInput').addEventListener('focus', () => searchHasFocus = true);
+document.getElementById('searchInput').addEventListener('blur', () => searchHasFocus = false);
+document.getElementById('filterSelect').addEventListener('change', render);
+document.getElementById('resetBtn').addEventListener('click', async () => {
+  if(confirm('¿Reiniciar la lista para todos? Esto marcará a todos como "no han entrado".')){
+    NAMES.forEach(n => {
+      const info = classifyGuest(n);
+      state[n] = { checked:false, time:null, count: info.type === 'familia' ? null : info.defaultCount };
+    });
+    scheduleSave();
+    render();
+  }
+});
+
+document.getElementById('modalConfirmBtn').addEventListener('click', confirmFamilyModal);
+document.getElementById('modalCancelBtn').addEventListener('click', closeFamilyModal);
+document.getElementById('modalCountInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') confirmFamilyModal();
+});
+document.getElementById('familyModal').addEventListener('click', (e) => {
+  if(e.target.id === 'familyModal') closeFamilyModal();
+});
+
+document.getElementById('printBtn').addEventListener('click', openPrintWindow);
+
+function openPrintWindow(){
+  const entrados = NAMES.filter(n => state[n].checked);
+  const totalPersonas = entrados.reduce((sum, n) => sum + (state[n].count || 1), 0);
+
+  const rows = entrados.map(n => {
+    const info = classifyGuest(n);
+    const g = state[n];
+    const cantidad = info.type === 'familia' ? g.count : info.defaultCount;
+    return `<tr>
+      <td>${escapeHtml(n)}</td>
+      <td style="text-align:center;">${cantidad}</td>
+      <td style="text-align:center;">${g.time || ''}</td>
+    </tr>`;
+  }).join('');
+
+  const fecha = new Date().toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' });
+
+  const html = `<!DOCTYPE html>
+  <html lang="es"><head><meta charset="UTF-8"><title>Reporte de entradas</title>
+  <style>
+    body{ font-family: Georgia, 'Times New Roman', serif; color:#4a2635; padding:36px; }
+    h1{ color:#b6396f; margin-bottom:0; }
+    .sub{ color:#a9738b; font-size:0.9rem; margin-top:4px; margin-bottom:24px; }
+    table{ width:100%; border-collapse:collapse; }
+    th{ text-align:left; background:#fbe6ee; color:#b6396f; padding:8px 10px; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; }
+    td{ padding:8px 10px; border-bottom:1px solid #f3d3e0; font-size:0.92rem; }
+    .summary{ margin-top:26px; padding:16px 20px; background:#fff5f9; border:1px solid #f3d3e0; border-radius:10px; display:flex; gap:30px; }
+    .summary div b{ display:block; font-size:1.4rem; color:#b6396f; }
+    @media print{ body{ padding:14px; } }
+  </style>
+  </head><body>
+    <h1>Reporte de entradas</h1>
+    <div class="sub">Generado el ${fecha}</div>
+    <table>
+      <thead><tr><th>Invitación</th><th style="text-align:center;">Personas</th><th style="text-align:center;">Hora</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="3" style="text-align:center;color:#a9738b;">Aún no ha entrado nadie</td></tr>'}</tbody>
+    </table>
+    <div class="summary">
+      <div><b>${entrados.length}</b>invitaciones registradas</div>
+      <div><b>${totalPersonas}</b>personas en total</div>
+    </div>
+  </body></html>`;
+
+  const win = window.open('', '_blank', 'width=800,height=900');
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 300);
+}
+
+loadState(false);
+</script>
+
+</body>
+</html>
