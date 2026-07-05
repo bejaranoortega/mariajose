@@ -350,7 +350,31 @@
 
 <footer>Evento · lista compartida entre todos los encargados de la entrada</footer>
 
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <script>
+// ============================================
+// PEGA AQUÍ TU firebaseConfig (te lo da la consola de Firebase)
+// ============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD4KHTEH6vbNQZvQsQmWwJ1lkS5lODbttY",
+  authDomain: "maria-jose-2515e.firebaseapp.com",
+  databaseURL: "https://maria-jose-2515e-default-rtdb.firebaseio.com",
+  projectId: "maria-jose-2515e",
+  storageBucket: "maria-jose-2515e.firebasestorage.app",
+  messagingSenderId: "428877808209",
+  appId: "1:428877808209:web:fdcbf3549a356664366e70"
+};
+
+const FIREBASE_READY = firebaseConfig.apiKey !== "PEGA_AQUI" && firebaseConfig.databaseURL !== "PEGA_AQUI_URL_RTDB";
+let dbRef = null;
+if(FIREBASE_READY){
+  firebase.initializeApp(firebaseConfig);
+  dbRef = firebase.database().ref('evento_checkin_v1');
+} else {
+  console.warn('Falta configurar Firebase: pega tu firebaseConfig en el <script> del archivo.');
+}
+
 const NAMES = [
 "arley","Arnolis","Breiner","Camilo y sofia","coco y familia","darlis","Dedier","Dileidy",
 "Doña Elvia","Doña Lina","Eduar y familia","ellen","Eloina Acosta","Enilda y familia",
@@ -367,13 +391,10 @@ const NAMES = [
 "Yuliana","Yulis y geids"
 ];
 
-const STORAGE_KEY = 'evento_checkin_v1';
-const SHARED = true; // lista compartida entre todos los dispositivos
 let state = {};
 let saveTimeout = null;
-let pollInterval = null;
-let searchHasFocus = false;
 let pendingFamilyName = null;
+let receivingRemoteUpdate = false;
 
 // Clasifica cada invitación para saber cuántas personas representa
 function classifyGuest(name){
@@ -396,38 +417,42 @@ function initState(){
   });
 }
 
-async function loadState(silent){
-  try{
-    const result = await window.storage.get(STORAGE_KEY, SHARED);
-    if(result && result.value){
-      state = JSON.parse(result.value);
-    }
-  }catch(e){
-    // aun no hay datos guardados
-  }
+async function loadState(){
   initState();
-  render();
-  if(!silent){
-    startPolling();
+  if(!FIREBASE_READY){
+    render();
+    document.getElementById('saveText').textContent = 'Sin conectar (falta configurar Firebase)';
+    document.querySelector('.save-dot').style.background = '#c14b6a';
+    return;
   }
-}
-
-function startPolling(){
-  if(pollInterval) clearInterval(pollInterval);
-  pollInterval = setInterval(() => {
-    if(!searchHasFocus){
-      loadState(true);
+  dbRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    if(data){
+      receivingRemoteUpdate = true;
+      state = data;
+      initState();
+      render();
+      receivingRemoteUpdate = false;
+    } else {
+      render();
     }
-  }, 4000);
+  }, (err) => {
+    document.getElementById('saveText').textContent = 'Error de conexión con Firebase';
+  });
 }
 
 function scheduleSave(){
+  if(receivingRemoteUpdate) return;
   const indicator = document.getElementById('saveText');
+  if(!FIREBASE_READY){
+    indicator.textContent = 'Sin conectar (falta configurar Firebase)';
+    return;
+  }
   indicator.textContent = 'Guardando...';
   if(saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
     try{
-      await window.storage.set(STORAGE_KEY, JSON.stringify(state), SHARED);
+      await dbRef.set(state);
       indicator.textContent = 'Sincronizado con el equipo';
     }catch(e){
       indicator.textContent = 'Error al guardar, reintentando...';
@@ -607,8 +632,6 @@ function escapeHtml(str){
 }
 
 document.getElementById('searchInput').addEventListener('input', render);
-document.getElementById('searchInput').addEventListener('focus', () => searchHasFocus = true);
-document.getElementById('searchInput').addEventListener('blur', () => searchHasFocus = false);
 document.getElementById('filterSelect').addEventListener('change', render);
 document.getElementById('resetBtn').addEventListener('click', async () => {
   if(confirm('¿Reiniciar la lista para todos? Esto marcará a todos como "no han entrado".')){
@@ -683,7 +706,7 @@ function openPrintWindow(){
   setTimeout(() => win.print(), 300);
 }
 
-loadState(false);
+loadState();
 </script>
 
 </body>
