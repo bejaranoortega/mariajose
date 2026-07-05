@@ -419,12 +419,14 @@ function initState(){
 
 async function loadState(){
   initState();
+  render(); // mostrar la lista de una vez, sin esperar a Firebase
+
   if(!FIREBASE_READY){
-    render();
     document.getElementById('saveText').textContent = 'Sin conectar (falta configurar Firebase)';
     document.querySelector('.save-dot').style.background = '#c14b6a';
     return;
   }
+
   dbRef.on('value', (snapshot) => {
     const data = snapshot.val();
     if(data){
@@ -433,11 +435,11 @@ async function loadState(){
       initState();
       render();
       receivingRemoteUpdate = false;
-    } else {
-      render();
     }
   }, (err) => {
     document.getElementById('saveText').textContent = 'Error de conexión con Firebase';
+    document.querySelector('.save-dot').style.background = '#c14b6a';
+    console.error('Firebase error:', err);
   });
 }
 
@@ -456,6 +458,7 @@ function scheduleSave(){
       indicator.textContent = 'Sincronizado con el equipo';
     }catch(e){
       indicator.textContent = 'Error al guardar, reintentando...';
+      console.error('Error guardando en Firebase:', e.code || e.message || e);
       setTimeout(scheduleSave, 1500);
     }
   }, 300);
