@@ -417,6 +417,27 @@ function initState(){
   });
 }
 
+function nameToKey(name){
+  return 'g' + NAMES.indexOf(name);
+}
+
+function stateToFirebasePayload(){
+  const payload = {};
+  NAMES.forEach((n) => {
+    payload[nameToKey(n)] = state[n];
+  });
+  return payload;
+}
+
+function firebasePayloadToState(data){
+  const newState = {};
+  NAMES.forEach((n) => {
+    const val = data[nameToKey(n)];
+    if(val) newState[n] = val;
+  });
+  return newState;
+}
+
 async function loadState(){
   initState();
   render(); // mostrar la lista de una vez, sin esperar a Firebase
@@ -431,7 +452,7 @@ async function loadState(){
     const data = snapshot.val();
     if(data){
       receivingRemoteUpdate = true;
-      state = data;
+      state = firebasePayloadToState(data);
       initState();
       render();
       receivingRemoteUpdate = false;
@@ -454,7 +475,7 @@ function scheduleSave(){
   if(saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
     try{
-      await dbRef.set(state);
+      await dbRef.set(stateToFirebasePayload());
       indicator.textContent = 'Sincronizado con el equipo';
     }catch(e){
       indicator.textContent = 'Error al guardar, reintentando...';
