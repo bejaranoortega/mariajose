@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Control de Entradas</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='29' fill='%23e8c374' stroke='%23b6396f' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='23' fill='none' stroke='%23fff3d6' stroke-width='1.5' stroke-dasharray='2 3'/%3E%3Ctext x='32' y='41' font-family='Georgia,serif' font-size='24' font-weight='700' fill='%237a4b1c' text-anchor='middle'%3E15%3C/text%3E%3C/svg%3E">
 <style>
   :root{
     --bg-1: #fdf2f6;
@@ -126,6 +127,8 @@
     font-weight:600; transition: background 0.15s, border-color 0.15s;
   }
   .btn:hover{ background:var(--panel-soft); border-color:var(--accent-light); }
+  .btn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn.primary:hover{ background:var(--accent-deep); }
   .btn.danger{ color:#c14b6a; }
   .btn.danger:hover{ border-color:#c14b6a; background:#fdeef1; }
 
@@ -168,6 +171,9 @@
     font-size:0.97rem; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     min-width:0;
   }
+  .guest-name.custom::after{
+    content:'✦'; color:var(--accent); font-size:0.65rem; margin-left:6px; vertical-align:middle;
+  }
   .guest.checked .guest-name{ color:#5c8b71; text-decoration: line-through; text-decoration-color: var(--ok-border); }
   .guest-time{
     font-size:0.72rem; color:var(--text-dim); flex-shrink:0; white-space:nowrap;
@@ -207,7 +213,7 @@
     backdrop-filter: blur(2px);
   }
   .modal-box{
-    background:var(--panel); border-radius:18px; padding:24px; max-width:340px; width:100%;
+    background:var(--panel); border-radius:18px; padding:24px; max-width:360px; width:100%;
     box-shadow: 0 12px 40px rgba(74,38,53,0.25); border:1px solid var(--border);
     animation: modalIn 0.25s ease;
   }
@@ -218,11 +224,12 @@
   .modal-box h3{ margin:0 0 4px; color:var(--accent-deep); font-family: Georgia, serif; }
   .modal-box .modal-name{ color:var(--text-dim); font-size:0.85rem; margin:0 0 16px; }
   .modal-box label{ font-size:0.78rem; color:var(--text-dim); display:block; margin-bottom:6px; }
-  .modal-box input[type=number]{
+  .modal-box input[type=number], .modal-box input[type=text]{
     width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--border);
-    font-size:1.4rem; text-align:center; font-weight:700; color:var(--accent-deep); outline:none;
+    font-size:1rem; color:var(--text); outline:none; font-family:inherit;
   }
-  .modal-box input[type=number]:focus{ border-color:var(--accent); }
+  .modal-box input[type=number]{ font-size:1.4rem; text-align:center; font-weight:700; color:var(--accent-deep); }
+  .modal-box input:focus{ border-color:var(--accent); }
   .modal-actions{ display:flex; gap:10px; margin-top:18px; }
   .modal-actions button{
     flex:1; padding:11px; border-radius:10px; border:1px solid var(--border); cursor:pointer;
@@ -232,6 +239,16 @@
   .modal-actions .confirm:hover{ background:var(--accent-deep); }
   .modal-actions .cancel{ background:var(--panel); color:var(--text-dim); }
   .modal-actions .cancel:hover{ background:var(--panel-soft); }
+
+  .type-options{ display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
+  .type-option{
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px;
+    border:1px solid var(--border); cursor:pointer; font-size:0.88rem; font-weight:500;
+    color:var(--text); transition: border-color 0.15s, background 0.15s;
+  }
+  .type-option:hover{ border-color:var(--accent-light); background:var(--panel-soft); }
+  .type-option input{ accent-color: var(--accent); width:16px; height:16px; flex-shrink:0; }
+  .type-option.selected{ border-color:var(--accent); background:var(--panel-soft); }
 
   .empty-state{
     text-align:center; padding:60px 20px; color:var(--text-dim);
@@ -323,6 +340,7 @@
       <option value="entraron">Entraron</option>
       <option value="faltan">Faltan</option>
     </select>
+    <button class="btn primary" id="addGuestBtn">➕ Añadir invitado</button>
     <button class="btn" id="printBtn">🖨️ Imprimir entradas</button>
     <button class="btn danger" id="resetBtn">Reiniciar lista</button>
   </div>
@@ -348,13 +366,37 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="addGuestModal" style="display:none;">
+  <div class="modal-box">
+    <h3>Añadir invitado ➕</h3>
+    <label for="addGuestName">Nombre</label>
+    <input type="text" id="addGuestName" placeholder="Ej: Pedro Ramírez" style="margin-bottom:16px;">
+    <label>¿A cuántas personas representa?</label>
+    <div class="type-options" id="addGuestTypeOptions">
+      <label class="type-option selected" data-type="individual">
+        <input type="radio" name="addGuestType" value="individual" checked> 1 persona
+      </label>
+      <label class="type-option" data-type="pareja">
+        <input type="radio" name="addGuestType" value="pareja"> 2 personas
+      </label>
+      <label class="type-option" data-type="familia">
+        <input type="radio" name="addGuestType" value="familia"> Familia / grupo (pregunta cuántos al marcar entrada)
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel" id="addGuestCancelBtn">Cancelar</button>
+      <button class="confirm" id="addGuestConfirmBtn">Añadir</button>
+    </div>
+  </div>
+</div>
+
 <footer>Evento · lista compartida entre todos los encargados de la entrada</footer>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
 <script>
 // ============================================
-// PEGA AQUÍ TU firebaseConfig (te lo da la consola de Firebase)
+// firebaseConfig
 // ============================================
 const firebaseConfig = {
   apiKey: "AIzaSyD4KHTEH6vbNQZvQsQmWwJ1lkS5lODbttY",
@@ -375,7 +417,8 @@ if(FIREBASE_READY){
   console.warn('Falta configurar Firebase: pega tu firebaseConfig en el <script> del archivo.');
 }
 
-const NAMES = [
+// Lista base de invitados originales
+const BASE_NAMES = [
 "arley","Arnolis","Breiner","Camilo y sofia","coco y familia","darlis","Dedier","Dileidy",
 "Doña Elvia","Doña Lina","Eduar y familia","ellen","Eloina Acosta","Enilda y familia",
 "Familia Bejarano Ortega","Gildardo y familia","gladis y esposo","isabella","Isela y familia",
@@ -387,60 +430,59 @@ const NAMES = [
 "panfido y erlinda","Rosa y familia","Sandy y familia","Sara","Scarleth","Soris y familia",
 "steven","Tatiana","Tia esperanza y familia","Tia lolita y familia","Tia nuris y familia",
 "tia rocio y familia","Tio Nestor y familia","Tio Ricardo y familia","veronica",
-"Familia Vivas Bejarano","Wendy","yacer","Yaser","Yiny y familia","Yomara","yuber y diego",
+"Vivas Bejarano","Wendy","yacer","Yaser","Viny y familia","Yomara","yuber y diego",
 "Yuliana","Yulis y geids"
 ];
 
-let state = {};
+// guests: objeto { id: { name, type, count, checked, time, custom } }
+// type: 'individual' (1), 'pareja' (2), 'familia' (pregunta al marcar)
+let guests = {};
 let saveTimeout = null;
-let pendingFamilyName = null;
+let pendingFamilyId = null;
+let pendingFamilyEvent = null;
 let receivingRemoteUpdate = false;
 
-// Clasifica cada invitación para saber cuántas personas representa
-function classifyGuest(name){
+// Clasifica un nombre base para saber cuántas personas representa (solo para la siembra inicial)
+function classifyName(name){
   const lower = name.toLowerCase();
   if(lower.startsWith('familia ') || / y familia\b/.test(lower)){
-    return { type:'familia', defaultCount:null, label:'grupo' };
+    return { type:'familia', count:null };
   }
   if(/ y /.test(lower)){
-    return { type:'pareja', defaultCount:2, label:'2 personas' };
+    return { type:'pareja', count:2 };
   }
-  return { type:'individual', defaultCount:1, label:'1 persona' };
+  return { type:'individual', count:1 };
 }
 
-function initState(){
-  NAMES.forEach(n => {
-    if(!state[n]){
-      const info = classifyGuest(n);
-      state[n] = { checked:false, time:null, count: info.type === 'familia' ? null : info.defaultCount };
-    }
+function labelForType(type){
+  if(type === 'familia') return 'grupo';
+  if(type === 'pareja') return '2 personas';
+  return '1 persona';
+}
+
+function defaultCountForType(type){
+  if(type === 'familia') return null;
+  if(type === 'pareja') return 2;
+  return 1;
+}
+
+// Construye la lista base de invitados (se usa solo si Firebase está vacío)
+function seedGuests(){
+  const seeded = {};
+  BASE_NAMES.forEach((name, i) => {
+    const info = classifyName(name);
+    seeded['b' + i] = { name, type: info.type, count: info.count, checked:false, time:null, custom:false };
   });
+  return seeded;
 }
 
-function nameToKey(name){
-  return 'g' + NAMES.indexOf(name);
-}
-
-function stateToFirebasePayload(){
-  const payload = {};
-  NAMES.forEach((n) => {
-    payload[nameToKey(n)] = state[n];
-  });
-  return payload;
-}
-
-function firebasePayloadToState(data){
-  const newState = {};
-  NAMES.forEach((n) => {
-    const val = data[nameToKey(n)];
-    if(val) newState[n] = val;
-  });
-  return newState;
+function generateCustomId(){
+  return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
 async function loadState(){
-  initState();
-  render(); // mostrar la lista de una vez, sin esperar a Firebase
+  guests = seedGuests();
+  render(); // mostrar la lista base de una vez, sin esperar a Firebase
 
   if(!FIREBASE_READY){
     document.getElementById('saveText').textContent = 'Sin conectar (falta configurar Firebase)';
@@ -450,12 +492,14 @@ async function loadState(){
 
   dbRef.on('value', (snapshot) => {
     const data = snapshot.val();
-    if(data){
+    if(data && data.guests){
       receivingRemoteUpdate = true;
-      state = firebasePayloadToState(data);
-      initState();
+      guests = data.guests;
       render();
       receivingRemoteUpdate = false;
+    } else {
+      // primera vez que se usa: sembrar la base en Firebase
+      dbRef.set({ guests }).catch(e => console.error('Error sembrando datos:', e));
     }
   }, (err) => {
     document.getElementById('saveText').textContent = 'Error de conexión con Firebase';
@@ -475,7 +519,7 @@ function scheduleSave(){
   if(saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
     try{
-      await dbRef.set(stateToFirebasePayload());
+      await dbRef.set({ guests });
       indicator.textContent = 'Sincronizado con el equipo';
     }catch(e){
       indicator.textContent = 'Error al guardar, reintentando...';
@@ -485,80 +529,74 @@ function scheduleSave(){
   }, 300);
 }
 
-function toggle(name, event){
-  const info = classifyGuest(name);
-  const g = state[name];
+function toggle(id, event){
+  const g = guests[id];
+  if(!g) return;
 
-  if(info.type === 'familia'){
+  if(g.type === 'familia'){
     if(g.checked){
-      // desmarcar directo, sin preguntar
       g.checked = false;
       g.time = null;
       scheduleSave();
       render();
     } else {
-      openFamilyModal(name, event);
+      openFamilyModal(id, event);
     }
     return;
   }
 
-  // individual o pareja: conteo fijo, se marca directo
   g.checked = !g.checked;
   g.time = g.checked ? new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'}) : null;
   scheduleSave();
   render();
   if(g.checked){
     celebrate(event);
-    bounceRow(name);
+    bounceRow(id);
   }
 }
 
-function openFamilyModal(name, event){
-  pendingFamilyName = name;
+function openFamilyModal(id, event){
+  pendingFamilyId = id;
   pendingFamilyEvent = event;
-  document.getElementById('modalGuestName').textContent = name;
+  document.getElementById('modalGuestName').textContent = guests[id].name;
   const input = document.getElementById('modalCountInput');
-  input.value = state[name].count || 3;
+  input.value = guests[id].count || 3;
   document.getElementById('familyModal').style.display = 'flex';
   setTimeout(() => input.select(), 50);
 }
 
 function closeFamilyModal(){
   document.getElementById('familyModal').style.display = 'none';
-  pendingFamilyName = null;
+  pendingFamilyId = null;
 }
 
 function confirmFamilyModal(){
-  const name = pendingFamilyName;
-  if(!name) return;
+  const id = pendingFamilyId;
+  if(!id || !guests[id]) return;
   const val = parseInt(document.getElementById('modalCountInput').value, 10);
   const count = (isNaN(val) || val < 1) ? 1 : val;
-  state[name].checked = true;
-  state[name].count = count;
-  state[name].time = new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'});
+  guests[id].checked = true;
+  guests[id].count = count;
+  guests[id].time = new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'});
   scheduleSave();
   const ev = pendingFamilyEvent;
   closeFamilyModal();
   render();
   celebrate(ev);
-  bounceRow(name);
+  bounceRow(id);
 }
 
-let pendingFamilyEvent = null;
-
-function bounceRow(name){
+function bounceRow(id){
   requestAnimationFrame(() => {
-    const rows = document.querySelectorAll('.guest');
-    rows.forEach(r => {
-      if(r.dataset.name === name){
-        r.classList.add('just-checked');
-        setTimeout(() => r.classList.remove('just-checked'), 500);
-      }
-    });
+    const el = document.querySelector(`.guest[data-id="${id}"]`);
+    if(el){
+      el.classList.add('just-checked');
+      setTimeout(() => el.classList.remove('just-checked'), 500);
+    }
   });
 }
 
-// Pequena explosion de confeti / corazones al confirmar una entrada
+// Pequeña explosión de confeti / corazones al confirmar una entrada
 function celebrate(event){
   const emojis = ['🎉','💕','✨','🌸','💗'];
   let x = window.innerWidth / 2;
@@ -592,32 +630,31 @@ function render(){
   const list = document.getElementById('list');
   const emptyState = document.getElementById('emptyState');
 
-  let names = NAMES.filter(n => n.toLowerCase().includes(search));
-  if(filter === 'entraron') names = names.filter(n => state[n].checked);
-  if(filter === 'faltan') names = names.filter(n => !state[n].checked);
+  let ids = Object.keys(guests).filter(id => guests[id].name.toLowerCase().includes(search));
+  if(filter === 'entraron') ids = ids.filter(id => guests[id].checked);
+  if(filter === 'faltan') ids = ids.filter(id => !guests[id].checked);
 
   list.innerHTML = '';
-  if(names.length === 0){
+  if(ids.length === 0){
     emptyState.style.display = 'block';
   } else {
     emptyState.style.display = 'none';
-    names.forEach(n => {
-      const g = state[n];
-      const info = classifyGuest(n);
+    ids.forEach(id => {
+      const g = guests[id];
       const div = document.createElement('div');
       div.className = 'guest' + (g.checked ? ' checked' : '');
-      div.dataset.name = n;
-      div.onclick = (ev) => toggle(n, ev);
+      div.dataset.id = id;
+      div.onclick = (ev) => toggle(id, ev);
 
       let badgeText;
-      if(info.type === 'familia'){
+      if(g.type === 'familia'){
         badgeText = g.checked ? (g.count + (g.count === 1 ? ' persona' : ' personas')) : 'grupo';
       } else {
-        badgeText = info.label;
+        badgeText = labelForType(g.type);
       }
 
       const timeBlock = g.checked
-        ? `<span class="count-line">${info.type === 'familia' ? (g.count + ' 👥') : ''}</span>${g.time}`
+        ? `<span class="count-line">${g.type === 'familia' ? (g.count + ' 👥') : ''}</span>${g.time}`
         : '';
 
       div.innerHTML = `
@@ -625,7 +662,7 @@ function render(){
           <div class="checkbox">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
           </div>
-          <div class="guest-name">${escapeHtml(n)}</div>
+          <div class="guest-name${g.custom ? ' custom' : ''}">${escapeHtml(g.name)}</div>
           <span class="badge">${badgeText}</span>
         </div>
         <div class="guest-time">${timeBlock}</div>
@@ -638,10 +675,11 @@ function render(){
 }
 
 function updateStats(){
-  const total = NAMES.length;
-  const entraron = NAMES.filter(n => state[n].checked).length;
+  const ids = Object.keys(guests);
+  const total = ids.length;
+  const entraron = ids.filter(id => guests[id].checked).length;
   const faltan = total - entraron;
-  const personas = NAMES.reduce((sum, n) => sum + (state[n].checked ? (state[n].count || 1) : 0), 0);
+  const personas = ids.reduce((sum, id) => sum + (guests[id].checked ? (guests[id].count || 1) : 0), 0);
   document.getElementById('statTotal').textContent = total;
   document.getElementById('statEntraron').textContent = entraron;
   document.getElementById('statFaltan').textContent = faltan;
@@ -657,17 +695,20 @@ function escapeHtml(str){
 
 document.getElementById('searchInput').addEventListener('input', render);
 document.getElementById('filterSelect').addEventListener('change', render);
+
 document.getElementById('resetBtn').addEventListener('click', async () => {
-  if(confirm('¿Reiniciar la lista para todos? Esto marcará a todos como "no han entrado".')){
-    NAMES.forEach(n => {
-      const info = classifyGuest(n);
-      state[n] = { checked:false, time:null, count: info.type === 'familia' ? null : info.defaultCount };
+  if(confirm('¿Reiniciar la lista para todos? Esto marcará a todos como "no han entrado" (los invitados añadidos manualmente no se borran).')){
+    Object.keys(guests).forEach(id => {
+      guests[id].checked = false;
+      guests[id].time = null;
+      if(guests[id].type === 'familia') guests[id].count = null;
     });
     scheduleSave();
     render();
   }
 });
 
+// ---- Modal: familia (preguntar cuántos llegaron) ----
 document.getElementById('modalConfirmBtn').addEventListener('click', confirmFamilyModal);
 document.getElementById('modalCancelBtn').addEventListener('click', closeFamilyModal);
 document.getElementById('modalCountInput').addEventListener('keydown', (e) => {
@@ -677,19 +718,76 @@ document.getElementById('familyModal').addEventListener('click', (e) => {
   if(e.target.id === 'familyModal') closeFamilyModal();
 });
 
+// ---- Modal: añadir invitado ----
+const addGuestModal = document.getElementById('addGuestModal');
+const addGuestNameInput = document.getElementById('addGuestName');
+
+document.getElementById('addGuestBtn').addEventListener('click', () => {
+  addGuestNameInput.value = '';
+  document.querySelectorAll('#addGuestTypeOptions .type-option').forEach(el => el.classList.remove('selected'));
+  const first = document.querySelector('#addGuestTypeOptions .type-option[data-type="individual"]');
+  first.classList.add('selected');
+  first.querySelector('input').checked = true;
+  addGuestModal.style.display = 'flex';
+  setTimeout(() => addGuestNameInput.focus(), 50);
+});
+
+document.querySelectorAll('#addGuestTypeOptions .type-option').forEach(label => {
+  label.addEventListener('click', () => {
+    document.querySelectorAll('#addGuestTypeOptions .type-option').forEach(el => el.classList.remove('selected'));
+    label.classList.add('selected');
+    label.querySelector('input').checked = true;
+  });
+});
+
+function closeAddGuestModal(){
+  addGuestModal.style.display = 'none';
+}
+
+document.getElementById('addGuestCancelBtn').addEventListener('click', closeAddGuestModal);
+addGuestModal.addEventListener('click', (e) => {
+  if(e.target.id === 'addGuestModal') closeAddGuestModal();
+});
+
+document.getElementById('addGuestConfirmBtn').addEventListener('click', () => {
+  const name = addGuestNameInput.value.trim();
+  if(!name){
+    addGuestNameInput.focus();
+    addGuestNameInput.style.borderColor = '#c14b6a';
+    setTimeout(() => addGuestNameInput.style.borderColor = '', 1200);
+    return;
+  }
+  const selectedType = document.querySelector('#addGuestTypeOptions input[name="addGuestType"]:checked').value;
+  const id = generateCustomId();
+  guests[id] = {
+    name,
+    type: selectedType,
+    count: defaultCountForType(selectedType),
+    checked:false,
+    time:null,
+    custom:true
+  };
+  scheduleSave();
+  closeAddGuestModal();
+  render();
+});
+
+addGuestNameInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') document.getElementById('addGuestConfirmBtn').click();
+});
+
+// ---- Imprimir ----
 document.getElementById('printBtn').addEventListener('click', openPrintWindow);
 
 function openPrintWindow(){
-  const entrados = NAMES.filter(n => state[n].checked);
-  const totalPersonas = entrados.reduce((sum, n) => sum + (state[n].count || 1), 0);
+  const ids = Object.keys(guests).filter(id => guests[id].checked);
+  const totalPersonas = ids.reduce((sum, id) => sum + (guests[id].count || 1), 0);
 
-  const rows = entrados.map(n => {
-    const info = classifyGuest(n);
-    const g = state[n];
-    const cantidad = info.type === 'familia' ? g.count : info.defaultCount;
+  const rows = ids.map(id => {
+    const g = guests[id];
     return `<tr>
-      <td>${escapeHtml(n)}</td>
-      <td style="text-align:center;">${cantidad}</td>
+      <td>${escapeHtml(g.name)}</td>
+      <td style="text-align:center;">${g.count || 1}</td>
       <td style="text-align:center;">${g.time || ''}</td>
     </tr>`;
   }).join('');
@@ -717,7 +815,7 @@ function openPrintWindow(){
       <tbody>${rows || '<tr><td colspan="3" style="text-align:center;color:#a9738b;">Aún no ha entrado nadie</td></tr>'}</tbody>
     </table>
     <div class="summary">
-      <div><b>${entrados.length}</b>invitaciones registradas</div>
+      <div><b>${ids.length}</b>invitaciones registradas</div>
       <div><b>${totalPersonas}</b>personas en total</div>
     </div>
   </body></html>`;
