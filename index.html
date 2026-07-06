@@ -175,6 +175,9 @@
     content:'✦'; color:var(--accent); font-size:0.65rem; margin-left:6px; vertical-align:middle;
   }
   .guest.checked .guest-name{ color:#5c8b71; text-decoration: line-through; text-decoration-color: var(--ok-border); }
+  .guest-right{
+    display:flex; align-items:center; gap:10px; flex-shrink:0;
+  }
   .guest-time{
     font-size:0.72rem; color:var(--text-dim); flex-shrink:0; white-space:nowrap;
     text-align:right;
@@ -189,6 +192,14 @@
     white-space:nowrap;
   }
   .guest.checked .badge{ background:var(--ok-border); color:#2f6b48; }
+
+  .delete-btn{
+    width:26px; height:26px; border-radius:8px; border:1px solid var(--border);
+    background:var(--panel); color:var(--text-dim); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition: all 0.15s; font-size:0.85rem;
+  }
+  .delete-btn:hover{ background:#fdeef1; border-color:#c14b6a; color:#c14b6a; }
 
   @keyframes popCheck{
     0%{ transform:scale(1); }
@@ -239,6 +250,8 @@
   .modal-actions .confirm:hover{ background:var(--accent-deep); }
   .modal-actions .cancel{ background:var(--panel); color:var(--text-dim); }
   .modal-actions .cancel:hover{ background:var(--panel-soft); }
+  .modal-actions .confirm.danger-confirm{ background:#c14b6a; border-color:#c14b6a; }
+  .modal-actions .confirm.danger-confirm:hover{ background:#a53a56; }
 
   .type-options{ display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
   .type-option{
@@ -390,6 +403,17 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="deleteGuestModal" style="display:none;">
+  <div class="modal-box">
+    <h3>Borrar invitado 🗑️</h3>
+    <p class="modal-name" id="deleteGuestName" style="margin-bottom:18px;"></p>
+    <div class="modal-actions">
+      <button class="cancel" id="deleteGuestCancelBtn">Cancelar</button>
+      <button class="confirm danger-confirm" id="deleteGuestConfirmBtn">Sí, borrar</button>
+    </div>
+  </div>
+</div>
+
 <footer>Evento · lista compartida entre todos los encargados de la entrada</footer>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
@@ -440,6 +464,7 @@ let guests = {};
 let saveTimeout = null;
 let pendingFamilyId = null;
 let pendingFamilyEvent = null;
+let pendingDeleteId = null;
 let receivingRemoteUpdate = false;
 
 // Clasifica un nombre base para saber cuántas personas representa (solo para la siembra inicial)
@@ -665,11 +690,22 @@ function render(){
           <div class="guest-name${g.custom ? ' custom' : ''}">${escapeHtml(g.name)}</div>
           <span class="badge">${badgeText}</span>
         </div>
-        <div class="guest-time">${timeBlock}</div>
+        <div class="guest-right">
+          <div class="guest-time">${timeBlock}</div>
+          <div class="delete-btn" data-delete-id="${id}" title="Borrar invitado">✕</div>
+        </div>
       `;
       list.appendChild(div);
     });
   }
+
+  // listeners de borrar (separados del click de la fila)
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDeleteModal(btn.dataset.deleteId);
+    });
+  });
 
   updateStats();
 }
@@ -774,6 +810,34 @@ document.getElementById('addGuestConfirmBtn').addEventListener('click', () => {
 
 addGuestNameInput.addEventListener('keydown', (e) => {
   if(e.key === 'Enter') document.getElementById('addGuestConfirmBtn').click();
+});
+
+// ---- Modal: borrar invitado ----
+const deleteGuestModal = document.getElementById('deleteGuestModal');
+
+function openDeleteModal(id){
+  if(!guests[id]) return;
+  pendingDeleteId = id;
+  document.getElementById('deleteGuestName').textContent = `¿Borrar a "${guests[id].name}" de la lista? Esta acción no se puede deshacer.`;
+  deleteGuestModal.style.display = 'flex';
+}
+
+function closeDeleteModal(){
+  deleteGuestModal.style.display = 'none';
+  pendingDeleteId = null;
+}
+
+document.getElementById('deleteGuestCancelBtn').addEventListener('click', closeDeleteModal);
+deleteGuestModal.addEventListener('click', (e) => {
+  if(e.target.id === 'deleteGuestModal') closeDeleteModal();
+});
+
+document.getElementById('deleteGuestConfirmBtn').addEventListener('click', () => {
+  if(!pendingDeleteId) return;
+  delete guests[pendingDeleteId];
+  scheduleSave();
+  closeDeleteModal();
+  render();
 });
 
 // ---- Imprimir ----
