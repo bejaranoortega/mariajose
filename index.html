@@ -304,6 +304,39 @@
   }
   .lookup-count-num{ font-size:2.6rem; font-weight:800; color:#16a34a; line-height:1; }
   .lookup-count-lbl{ font-size:0.8rem; color:#64748b; margin-top:6px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+
+  .lookup-stats-row{ display:flex; gap:10px; margin-bottom:16px; }
+  .lookup-mini-card{
+    flex:1; background:#ffffff; border:1px solid #d7e3f7; border-radius:14px;
+    padding:14px 12px; text-align:center; box-shadow:0 2px 10px rgba(37,99,235,0.05);
+  }
+  .lookup-mini-num{ font-size:1.4rem; font-weight:800; color:#2563eb; line-height:1.1; }
+  .lookup-mini-lbl{ font-size:0.66rem; color:#64748b; margin-top:4px; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; }
+
+  .lookup-breakdown{
+    display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;
+  }
+  .lookup-breakdown-item{
+    flex:1; min-width:100px; background:#ffffff; border:1px solid #e2e8f0; border-radius:12px;
+    padding:10px 12px; display:flex; align-items:center; gap:8px;
+  }
+  .lookup-breakdown-icon{ font-size:1.2rem; }
+  .lookup-breakdown-num{ font-weight:800; font-size:1rem; color:#1f2937; }
+  .lookup-breakdown-lbl{ font-size:0.66rem; color:#64748b; font-weight:600; text-transform:uppercase; }
+
+  .lookup-last-card{
+    background:linear-gradient(135deg, #fff7ed, #fef3c7); border:1px solid #fde68a;
+    border-radius:14px; padding:12px 16px; margin-bottom:18px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .lookup-last-icon{ font-size:1.6rem; }
+  .lookup-last-label{ font-size:0.65rem; color:#92700a; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+  .lookup-last-name{ font-size:0.95rem; font-weight:700; color:#78350f; }
+  .lookup-last-time{ margin-left:auto; font-size:0.8rem; font-weight:700; color:#92700a; white-space:nowrap; }
+
+  .lookup-result-type{
+    font-size:0.7rem; color:#2563eb; font-weight:700; margin-top:2px;
+  }
   .lookup-search-wrap{
     display:flex; align-items:center; gap:10px; background:#ffffff;
     border:1px solid #d7e3f7; border-radius:14px; padding:14px 16px; margin-bottom:18px;
@@ -461,10 +494,34 @@
 <div id="lookupView" class="lookup-view" style="display:none;">
   <div class="lookup-inner">
     <button class="lookup-back" id="lookupBackBtn">← Volver a registrar entradas</button>
+
     <div class="lookup-count-card">
       <div class="lookup-count-num" id="lookupCount">0</div>
       <div class="lookup-count-lbl">personas dentro ahora mismo</div>
     </div>
+
+    <div class="lookup-stats-row">
+      <div class="lookup-mini-card">
+        <div class="lookup-mini-num" id="lookupEntraronCount">0</div>
+        <div class="lookup-mini-lbl">invitaciones dentro</div>
+      </div>
+      <div class="lookup-mini-card">
+        <div class="lookup-mini-num" id="lookupFaltanCount">0</div>
+        <div class="lookup-mini-lbl">aún no llegan</div>
+      </div>
+    </div>
+
+    <div class="lookup-breakdown" id="lookupBreakdown"></div>
+
+    <div class="lookup-last-card" id="lookupLastCard" style="display:none;">
+      <span class="lookup-last-icon">🎉</span>
+      <div>
+        <div class="lookup-last-label">Última entrada</div>
+        <div class="lookup-last-name" id="lookupLastName"></div>
+      </div>
+      <div class="lookup-last-time" id="lookupLastTime"></div>
+    </div>
+
     <div class="lookup-search-wrap">
       <span>🔍</span>
       <input type="text" id="lookupSearch" placeholder="Buscar quién ya entró...">
@@ -691,6 +748,7 @@ function toggle(id, event){
     if(g.checked){
       g.checked = false;
       g.time = null;
+      g.ts = null;
       scheduleSave();
       render();
     } else {
@@ -701,6 +759,7 @@ function toggle(id, event){
 
   g.checked = !g.checked;
   g.time = g.checked ? new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'}) : null;
+  g.ts = g.checked ? Date.now() : null;
   scheduleSave();
   render();
   if(g.checked){
@@ -732,6 +791,7 @@ function confirmFamilyModal(){
   guests[id].checked = true;
   guests[id].count = count;
   guests[id].time = new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'});
+  guests[id].ts = Date.now();
   scheduleSave();
   const ev = pendingFamilyEvent;
   closeFamilyModal();
@@ -870,6 +930,7 @@ document.getElementById('resetBtn').addEventListener('click', async () => {
     Object.keys(guests).forEach(id => {
       guests[id].checked = false;
       guests[id].time = null;
+      guests[id].ts = null;
       if(guests[id].type === 'familia') guests[id].count = null;
     });
     scheduleSave();
@@ -997,16 +1058,52 @@ function renderLookupView(){
   const q = document.getElementById('lookupSearch').value.trim().toLowerCase();
   const results = document.getElementById('lookupResults');
 
-  const checkedIds = Object.keys(guests).filter(id => guests[id].checked);
+  const allIds = Object.keys(guests);
+  const checkedIds = allIds.filter(id => guests[id].checked);
   const totalPersonas = checkedIds.reduce((sum, id) => sum + (guests[id].count || 1), 0);
-  document.getElementById('lookupCount').textContent = totalPersonas;
 
+  document.getElementById('lookupCount').textContent = totalPersonas;
+  document.getElementById('lookupEntraronCount').textContent = checkedIds.length;
+  document.getElementById('lookupFaltanCount').textContent = allIds.length - checkedIds.length;
+
+  // Desglose por tipo entre los que ya entraron
+  const breakdown = { individual: 0, pareja: 0, familia: 0 };
+  checkedIds.forEach(id => { breakdown[guests[id].type] = (breakdown[guests[id].type] || 0) + 1; });
+  const breakdownEl = document.getElementById('lookupBreakdown');
+  breakdownEl.innerHTML = `
+    <div class="lookup-breakdown-item">
+      <span class="lookup-breakdown-icon">🧍</span>
+      <div><div class="lookup-breakdown-num">${breakdown.individual}</div><div class="lookup-breakdown-lbl">Individuales</div></div>
+    </div>
+    <div class="lookup-breakdown-item">
+      <span class="lookup-breakdown-icon">👫</span>
+      <div><div class="lookup-breakdown-num">${breakdown.pareja}</div><div class="lookup-breakdown-lbl">Parejas</div></div>
+    </div>
+    <div class="lookup-breakdown-item">
+      <span class="lookup-breakdown-icon">👨‍👩‍👧‍👦</span>
+      <div><div class="lookup-breakdown-num">${breakdown.familia}</div><div class="lookup-breakdown-lbl">Grupos</div></div>
+    </div>
+  `;
+
+  // Última entrada (la más reciente por timestamp real)
+  const lastCard = document.getElementById('lookupLastCard');
+  const withTs = checkedIds.filter(id => guests[id].ts);
+  if(withTs.length > 0){
+    const lastId = withTs.reduce((a, b) => (guests[a].ts > guests[b].ts ? a : b));
+    lastCard.style.display = 'flex';
+    document.getElementById('lookupLastName').textContent = guests[lastId].name;
+    document.getElementById('lookupLastTime').textContent = guests[lastId].time || '';
+  } else {
+    lastCard.style.display = 'none';
+  }
+
+  // Lista de resultados, mas recientes primero
   const filteredIds = checkedIds
     .filter(id => guests[id].name.toLowerCase().includes(q))
-    .sort((a, b) => (guests[a].time || '').localeCompare(guests[b].time || ''));
+    .sort((a, b) => (guests[b].ts || 0) - (guests[a].ts || 0));
 
   if(checkedIds.length === 0){
-    results.innerHTML = "<div class='lookup-empty'>Aún no ha entrado nadie.</div>";
+    results.innerHTML = "<div class='lookup-empty'>Aún no ha entrado nadie. En cuanto marquen la primera entrada, aparecerá aquí al instante. ✨</div>";
     return;
   }
   if(filteredIds.length === 0){
@@ -1016,11 +1113,22 @@ function renderLookupView(){
 
   results.innerHTML = filteredIds.map(id => {
     const g = guests[id];
-    const personasTxt = g.count ? (g.count + (g.count === 1 ? ' persona' : ' personas')) : '';
+    let typeIcon, typeLabel;
+    if(g.type === 'familia'){
+      typeIcon = '👨‍👩‍👧‍👦';
+      typeLabel = 'Grupo: ' + g.count + (g.count === 1 ? ' persona' : ' personas');
+    } else if(g.type === 'pareja'){
+      typeIcon = '👫';
+      typeLabel = 'Pareja: 2 personas';
+    } else {
+      typeIcon = '🧍';
+      typeLabel = '1 persona';
+    }
     return `<div class="lookup-result">
       <div>
-        <div class="name">${escapeHtml(g.name)}</div>
-        <div class="meta">Entró a las ${g.time || ''} · ${personasTxt}</div>
+        <div class="name">${typeIcon} ${escapeHtml(g.name)}</div>
+        <div class="meta">Entró a las ${g.time || ''}</div>
+        <div class="lookup-result-type">${typeLabel}</div>
       </div>
       <span class="lookup-pill">✅ Dentro</span>
     </div>`;
