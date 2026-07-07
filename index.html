@@ -1,1 +1,1101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Entradas</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='29' fill='%23e8c374' stroke='%23b6396f' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='23' fill='none' stroke='%23fff3d6' stroke-width='1.5' stroke-dasharray='2 3'/%3E%3Ctext x='32' y='41' font-family='Georgia,serif' font-size='24' font-weight='700' fill='%237a4b1c' text-anchor='middle'%3E15%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg-1: #fdf2f6;
+    --bg-2: #fbe6ee;
+    --panel: #ffffff;
+    --panel-soft: #fff5f9;
+    --border: #f3d3e0;
+    --text: #4a2635;
+    --text-dim: #a9738b;
+    --accent: #d6558c;
+    --accent-deep: #b6396f;
+    --accent-light: #f7c9dc;
+    --ok: #4caf7d;
+    --ok-bg: #e7f6ee;
+    --ok-border: #b9e3ca;
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(900px 500px at 90% -10%, rgba(214,85,140,0.10), transparent 60%),
+      radial-gradient(700px 400px at -10% 20%, rgba(214,85,140,0.08), transparent 55%),
+      linear-gradient(180deg, var(--bg-1), var(--bg-2) 400px, var(--bg-1) 100%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg fill='%23e8709f' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='10'/%3E%3Ccircle cx='45' cy='22' r='6'/%3E%3Ccircle cx='20' cy='45' r='5'/%3E%3Cpath d='M30 30 q8 -14 16 0 q-8 6 -16 0Z'/%3E%3C/g%3E%3Cg fill='%23e8709f' fill-opacity='0.045'%3E%3Ccircle cx='150' cy='120' r='12'/%3E%3Ccircle cx='168' cy='110' r='7'/%3E%3Ccircle cx='140' cy='140' r='6'/%3E%3Cpath d='M150 120 q9 -16 18 0 q-9 7 -18 0Z'/%3E%3C/g%3E%3Cg fill='%23e8709f' fill-opacity='0.04'%3E%3Ccircle cx='190' cy='40' r='7'/%3E%3Ccircle cx='60' cy='180' r='9'/%3E%3Ccircle cx='75' cy='170' r='5'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-attachment: fixed;
+    color:var(--text);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    min-height:100vh;
+    padding:0 0 60px 0;
+  }
 
+  .deco-corner{
+    position:absolute; pointer-events:none; opacity:0.9; z-index:0;
+  }
+  .deco-tl{ top:0; left:0; }
+  .deco-tr{ top:0; right:0; transform: scaleX(-1); }
+
+  header{
+    position:sticky; top:0; z-index:20;
+    background:
+      rgba(253,242,246,0.92)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='%23e8709f' fill-opacity='0.07'%3E%3Ccircle cx='20' cy='20' r='8'/%3E%3Ccircle cx='34' cy='13' r='5'/%3E%3Cpath d='M20 20 q7 -12 14 0 q-7 5 -14 0Z'/%3E%3C/g%3E%3Cg fill='%23e8709f' fill-opacity='0.06'%3E%3Ccircle cx='110' cy='90' r='9'/%3E%3Ccircle cx='126' cy='82' r='5'/%3E%3Cpath d='M110 90 q8 -13 16 0 q-8 5 -16 0Z'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
+    backdrop-filter: blur(10px);
+    border-bottom:1px solid var(--border);
+    padding:20px 24px 16px;
+  }
+  .header-top{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;
+    position:relative; z-index:2;
+  }
+  .title-block{ display:flex; align-items:center; gap:12px; }
+  .title-block h1{
+    margin:0; font-size:1.5rem; font-weight:700; letter-spacing:0.2px; color:var(--accent-deep);
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+  .title-block .eyebrow{
+    color:var(--accent); font-size:0.72rem; text-transform:uppercase; letter-spacing:1.8px; font-weight:700;
+    margin-bottom:3px; display:block;
+  }
+  .save-indicator{
+    font-size:0.75rem; color:var(--text-dim); display:flex; align-items:center; gap:6px;
+    white-space:nowrap; padding-top:4px;
+  }
+  .save-dot{
+    width:7px; height:7px; border-radius:50%; background:var(--ok); flex-shrink:0;
+    box-shadow:0 0 0 0 rgba(76,175,125,0.5);
+    animation: pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(76,175,125,0.45);}
+    70%{box-shadow:0 0 0 6px rgba(76,175,125,0);}
+    100%{box-shadow:0 0 0 0 rgba(76,175,125,0);}
+  }
+
+  .stats-row{
+    display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; position:relative; z-index:2;
+  }
+  .stat-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:10px 16px; min-width:110px; flex:1;
+    box-shadow: 0 2px 10px rgba(182,57,111,0.06);
+  }
+  .stat-card .num{ font-size:1.55rem; font-weight:700; line-height:1.1; }
+  .stat-card .lbl{ font-size:0.68rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-top:2px;}
+  .stat-card.entraron .num{ color:var(--ok); }
+  .stat-card.faltan .num{ color:var(--accent); }
+
+  .progress-track{
+    margin-top:14px; height:8px; background:var(--panel-soft); border-radius:6px; overflow:hidden; border:1px solid var(--border);
+    position:relative; z-index:2;
+  }
+  .progress-fill{
+    height:100%; background:linear-gradient(90deg, var(--accent-light), var(--accent));
+    width:0%; transition: width 0.35s ease;
+  }
+
+  .controls{
+    margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    position:relative; z-index:2;
+  }
+  .search-wrap{
+    flex:1; min-width:200px; position:relative;
+  }
+  .search-wrap input{
+    width:100%; padding:11px 14px 11px 36px; border-radius:10px; border:1px solid var(--border);
+    background:var(--panel); color:var(--text); font-size:0.92rem; outline:none;
+  }
+  .search-wrap input:focus{ border-color:var(--accent); }
+  .search-wrap svg{
+    position:absolute; left:11px; top:50%; transform:translateY(-50%); opacity:0.55; pointer-events:none; color:var(--accent-deep);
+  }
+  select, .btn{
+    padding:11px 14px; border-radius:10px; border:1px solid var(--border);
+    background:var(--panel); color:var(--text); font-size:0.85rem; cursor:pointer;
+  }
+  .btn{
+    font-weight:600; transition: background 0.15s, border-color 0.15s;
+  }
+  .btn:hover{ background:var(--panel-soft); border-color:var(--accent-light); }
+  .btn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn.primary:hover{ background:var(--accent-deep); }
+  .btn.danger{ color:#c14b6a; }
+  .btn.danger:hover{ border-color:#c14b6a; background:#fdeef1; }
+
+  main{
+    padding:22px 24px;
+    max-width:900px;
+    margin:0 auto;
+    position:relative; z-index:2;
+  }
+
+  .list{
+    display:flex; flex-direction:column; gap:9px;
+  }
+  .guest{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:13px 16px; cursor:pointer; user-select:none;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    box-shadow: 0 1px 6px rgba(182,57,111,0.05);
+  }
+  .guest:hover{ border-color:var(--accent-light); transform: translateY(-1px); }
+  .guest.checked{
+    background: var(--ok-bg);
+    border-color: var(--ok-border);
+  }
+  .guest-left{
+    display:flex; align-items:center; gap:12px; min-width:0;
+  }
+  .checkbox{
+    width:23px; height:23px; border-radius:8px; border:2px solid var(--accent-light);
+    flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    transition: all 0.15s;
+  }
+  .guest.checked .checkbox{
+    background:var(--ok); border-color:var(--ok);
+  }
+  .checkbox svg{ opacity:0; transition:opacity 0.15s; }
+  .guest.checked .checkbox svg{ opacity:1; }
+  .guest-name{
+    font-size:0.97rem; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    min-width:0;
+  }
+  .guest-name.custom::after{
+    content:'✦'; color:var(--accent); font-size:0.65rem; margin-left:6px; vertical-align:middle;
+  }
+  .guest.checked .guest-name{ color:#5c8b71; text-decoration: line-through; text-decoration-color: var(--ok-border); }
+  .guest-right{
+    display:flex; align-items:center; gap:10px; flex-shrink:0;
+  }
+  .guest-time{
+    font-size:0.72rem; color:var(--text-dim); flex-shrink:0; white-space:nowrap;
+    text-align:right;
+  }
+  .guest-time .count-line{
+    display:block; font-weight:700; color:var(--accent-deep); font-size:0.76rem;
+  }
+
+  .badge{
+    font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:20px;
+    background:var(--accent-light); color:var(--accent-deep); flex-shrink:0;
+    white-space:nowrap;
+  }
+  .guest.checked .badge{ background:var(--ok-border); color:#2f6b48; }
+
+  .delete-btn{
+    width:26px; height:26px; border-radius:8px; border:1px solid var(--border);
+    background:var(--panel); color:var(--text-dim); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition: all 0.15s; font-size:0.85rem;
+  }
+  .delete-btn:hover{ background:#fdeef1; border-color:#c14b6a; color:#c14b6a; }
+
+  @keyframes popCheck{
+    0%{ transform:scale(1); }
+    30%{ transform:scale(1.18) rotate(-3deg); }
+    55%{ transform:scale(0.94) rotate(2deg); }
+    100%{ transform:scale(1) rotate(0); }
+  }
+  .guest.just-checked{ animation: popCheck 0.5s ease; }
+
+  .confetti-piece{
+    position:fixed; z-index:999; pointer-events:none; font-size:20px;
+    animation: confettiFly 0.9s ease-out forwards;
+  }
+  @keyframes confettiFly{
+    0%{ transform: translate(0,0) rotate(0deg) scale(1); opacity:1; }
+    100%{ transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.6); opacity:0; }
+  }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(74,38,53,0.45); z-index:100;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+    backdrop-filter: blur(2px);
+  }
+  .modal-box{
+    background:var(--panel); border-radius:18px; padding:24px; max-width:360px; width:100%;
+    box-shadow: 0 12px 40px rgba(74,38,53,0.25); border:1px solid var(--border);
+    animation: modalIn 0.25s ease;
+  }
+  @keyframes modalIn{
+    0%{ transform: translateY(12px) scale(0.96); opacity:0; }
+    100%{ transform: translateY(0) scale(1); opacity:1; }
+  }
+  .modal-box h3{ margin:0 0 4px; color:var(--accent-deep); font-family: Georgia, serif; }
+  .modal-box .modal-name{ color:var(--text-dim); font-size:0.85rem; margin:0 0 16px; }
+  .modal-box label{ font-size:0.78rem; color:var(--text-dim); display:block; margin-bottom:6px; }
+  .modal-box input[type=number], .modal-box input[type=text]{
+    width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--border);
+    font-size:1rem; color:var(--text); outline:none; font-family:inherit;
+  }
+  .modal-box input[type=number]{ font-size:1.4rem; text-align:center; font-weight:700; color:var(--accent-deep); }
+  .modal-box input:focus{ border-color:var(--accent); }
+  .modal-actions{ display:flex; gap:10px; margin-top:18px; }
+  .modal-actions button{
+    flex:1; padding:11px; border-radius:10px; border:1px solid var(--border); cursor:pointer;
+    font-weight:600; font-size:0.85rem;
+  }
+  .modal-actions .confirm{ background:var(--accent); color:white; border-color:var(--accent); }
+  .modal-actions .confirm:hover{ background:var(--accent-deep); }
+  .modal-actions .cancel{ background:var(--panel); color:var(--text-dim); }
+  .modal-actions .cancel:hover{ background:var(--panel-soft); }
+  .modal-actions .confirm.danger-confirm{ background:#c14b6a; border-color:#c14b6a; }
+  .modal-actions .confirm.danger-confirm:hover{ background:#a53a56; }
+
+  .type-options{ display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
+  .type-option{
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px;
+    border:1px solid var(--border); cursor:pointer; font-size:0.88rem; font-weight:500;
+    color:var(--text); transition: border-color 0.15s, background 0.15s;
+  }
+  .type-option:hover{ border-color:var(--accent-light); background:var(--panel-soft); }
+  .type-option input{ accent-color: var(--accent); width:16px; height:16px; flex-shrink:0; }
+  .type-option.selected{ border-color:var(--accent); background:var(--panel-soft); }
+
+  .bg-grid{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-bottom:6px;
+  }
+  .bg-swatch{
+    cursor:pointer; border-radius:12px; border:2px solid var(--border); overflow:hidden;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .bg-swatch:hover{ transform: translateY(-2px); }
+  .bg-swatch.selected{ border-color:var(--accent-deep); box-shadow: 0 0 0 3px var(--accent-light); }
+  .bg-swatch-preview{
+    height:56px; width:100%;
+  }
+  .bg-swatch-label{
+    font-size:0.68rem; text-align:center; padding:6px 4px; color:var(--text-dim); font-weight:600;
+    background:var(--panel);
+  }
+
+  .empty-state{
+    text-align:center; padding:60px 20px; color:var(--text-dim);
+  }
+
+  .shared-note{
+    max-width:900px; margin:14px auto 0; padding:0 24px;
+    font-size:0.72rem; color:var(--text-dim); position:relative; z-index:2;
+  }
+
+  footer{
+    text-align:center; padding:24px; color:var(--text-dim); font-size:0.72rem; position:relative; z-index:2;
+  }
+
+  @media (max-width:520px){
+    header{ padding:16px 16px 14px; }
+    main{ padding:16px; }
+    .stat-card{ min-width:90px; padding:8px 12px; }
+    .stat-card .num{ font-size:1.3rem; }
+    .deco-corner{ width:70px; }
+  }
+
+  /* ---- Tema neón oscuro ---- */
+  body.theme-neon .deco-corner{ display:none; }
+  body.theme-neon header{
+    background: rgba(6,6,6,0.92) !important;
+  }
+  body.theme-neon .title-block svg path{ fill:#39ff14 !important; }
+  body.theme-neon .title-block h1{ text-shadow: 0 0 10px rgba(255,255,255,0.35); }
+  body.theme-neon .btn,
+  body.theme-neon .stat-card,
+  body.theme-neon .guest,
+  body.theme-neon .modal-box,
+  body.theme-neon .search-wrap input,
+  body.theme-neon select,
+  body.theme-neon .checkbox,
+  body.theme-neon .bg-swatch{
+    box-shadow: 0 0 6px 1px rgba(255,255,255,0.35), 0 0 1px rgba(255,255,255,0.8) inset;
+  }
+  body.theme-neon .btn:hover{
+    box-shadow: 0 0 10px 2px rgba(255,255,255,0.55), 0 0 1px rgba(255,255,255,0.9) inset;
+  }
+  body.theme-neon .guest.checked{
+    box-shadow: 0 0 12px 3px rgba(57,255,20,0.55), 0 0 2px rgba(57,255,20,0.9) inset;
+  }
+  body.theme-neon .save-dot{ box-shadow: 0 0 8px 2px #39ff14; }
+  body.theme-neon .progress-fill{ box-shadow: 0 0 8px 1px rgba(57,255,20,0.6); }
+  body.theme-neon .btn.primary{ box-shadow: 0 0 10px 2px rgba(57,255,20,0.5); }
+  body.theme-neon .badge{ box-shadow: 0 0 4px 0 rgba(255,255,255,0.3); }
+  body.theme-neon .bg-swatch.selected{ box-shadow: 0 0 0 3px rgba(57,255,20,0.5), 0 0 10px 2px rgba(57,255,20,0.5); }
+</style>
+</head>
+<body>
+
+<svg class="deco-corner deco-tl" width="120" height="120" viewBox="0 0 120 120" fill="none">
+  <path d="M10 10 C30 30, 20 55, 45 60 C25 65, 15 90, 30 110" stroke="#e59cbf" stroke-width="2" fill="none" opacity="0.6"/>
+  <circle cx="22" cy="20" r="9" fill="#f2b8d3" opacity="0.85"/>
+  <circle cx="34" cy="14" r="6" fill="#e08cb5" opacity="0.85"/>
+  <circle cx="14" cy="34" r="5" fill="#f7d1e3" opacity="0.85"/>
+  <circle cx="46" cy="66" r="8" fill="#f2b8d3" opacity="0.7"/>
+  <circle cx="34" cy="92" r="6" fill="#e08cb5" opacity="0.7"/>
+  <path d="M20 22 q6 -10 12 0 q-6 4 -12 0Z" fill="#c65f8f" opacity="0.5"/>
+</svg>
+<svg class="deco-corner deco-tr" width="120" height="120" viewBox="0 0 120 120" fill="none">
+  <path d="M10 10 C30 30, 20 55, 45 60 C25 65, 15 90, 30 110" stroke="#e59cbf" stroke-width="2" fill="none" opacity="0.6"/>
+  <circle cx="22" cy="20" r="9" fill="#f2b8d3" opacity="0.85"/>
+  <circle cx="34" cy="14" r="6" fill="#e08cb5" opacity="0.85"/>
+  <circle cx="14" cy="34" r="5" fill="#f7d1e3" opacity="0.85"/>
+  <circle cx="46" cy="66" r="8" fill="#f2b8d3" opacity="0.7"/>
+  <circle cx="34" cy="92" r="6" fill="#e08cb5" opacity="0.7"/>
+</svg>
+
+<header>
+  <div class="header-top">
+    <div class="title-block">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;">
+        <path d="M12 21c-4-3-8-6.5-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 3.5C20 14.5 16 18 12 21Z" fill="#e8709f" opacity="0.9"/>
+      </svg>
+      <div>
+        <span class="eyebrow">Control de acceso</span>
+        <h1>Lista de invitados</h1>
+      </div>
+    </div>
+    <div class="save-indicator" id="saveIndicator">
+      <span class="save-dot"></span>
+      <span id="saveText">Sincronizado con el equipo</span>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card entraron">
+      <div class="num" id="statEntraron">0</div>
+      <div class="lbl">Entraron</div>
+    </div>
+    <div class="stat-card faltan">
+      <div class="num" id="statFaltan">0</div>
+      <div class="lbl">Faltan</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" id="statTotal">0</div>
+      <div class="lbl">Total invitaciones</div>
+    </div>
+    <div class="stat-card entraron">
+      <div class="num" id="statPersonas">0</div>
+      <div class="lbl">Personas dentro</div>
+    </div>
+  </div>
+
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div class="controls">
+    <div class="search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="searchInput" placeholder="Buscar invitado...">
+    </div>
+    <select id="filterSelect">
+      <option value="todos">Todos</option>
+      <option value="entraron">Entraron</option>
+      <option value="faltan">Faltan</option>
+    </select>
+    <button class="btn primary" id="addGuestBtn">➕ Añadir invitado</button>
+    <button class="btn" id="bgBtn">🎨 Fondo</button>
+    <button class="btn" id="printBtn">🖨️ Imprimir entradas</button>
+    <button class="btn danger" id="resetBtn">Reiniciar lista</button>
+  </div>
+</header>
+
+<p class="shared-note">Esta lista es compartida: cualquier persona que abra este archivo y marque una entrada, la verán todos los demás en unos segundos.</p>
+
+<main>
+  <div class="list" id="list"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">No se encontraron invitados con ese criterio.</div>
+</main>
+
+<div class="modal-overlay" id="familyModal" style="display:none;">
+  <div class="modal-box">
+    <h3>¿Cuántos llegaron? 🎉</h3>
+    <p class="modal-name" id="modalGuestName"></p>
+    <label for="modalCountInput">Número de personas</label>
+    <input type="number" id="modalCountInput" min="1" value="3">
+    <div class="modal-actions">
+      <button class="cancel" id="modalCancelBtn">Cancelar</button>
+      <button class="confirm" id="modalConfirmBtn">Confirmar entrada</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addGuestModal" style="display:none;">
+  <div class="modal-box">
+    <h3>Añadir invitado ➕</h3>
+    <label for="addGuestName">Nombre</label>
+    <input type="text" id="addGuestName" placeholder="Ej: Pedro Ramírez" style="margin-bottom:16px;">
+    <label>¿A cuántas personas representa?</label>
+    <div class="type-options" id="addGuestTypeOptions">
+      <label class="type-option selected" data-type="individual">
+        <input type="radio" name="addGuestType" value="individual" checked> 1 persona
+      </label>
+      <label class="type-option" data-type="pareja">
+        <input type="radio" name="addGuestType" value="pareja"> 2 personas
+      </label>
+      <label class="type-option" data-type="familia">
+        <input type="radio" name="addGuestType" value="familia"> Familia / grupo (pregunta cuántos al marcar entrada)
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel" id="addGuestCancelBtn">Cancelar</button>
+      <button class="confirm" id="addGuestConfirmBtn">Añadir</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteGuestModal" style="display:none;">
+  <div class="modal-box">
+    <h3>Borrar invitado 🗑️</h3>
+    <p class="modal-name" id="deleteGuestName" style="margin-bottom:18px;"></p>
+    <div class="modal-actions">
+      <button class="cancel" id="deleteGuestCancelBtn">Cancelar</button>
+      <button class="confirm danger-confirm" id="deleteGuestConfirmBtn">Sí, borrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bgModal" style="display:none;">
+  <div class="modal-box" style="max-width:420px;">
+    <h3>Elegir fondo 🎨</h3>
+    <p class="modal-name" style="margin-bottom:16px;">El fondo se aplica para todos los que abran esta página.</p>
+    <div class="bg-grid" id="bgGrid"></div>
+    <div class="modal-actions">
+      <button class="cancel" id="bgCloseBtn">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<footer>Evento · lista compartida entre todos los encargados de la entrada</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script>
+// ============================================
+// firebaseConfig
+// ============================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD4KHTEH6vbNQZvQsQmWwJ1lkS5lODbttY",
+  authDomain: "maria-jose-2515e.firebaseapp.com",
+  databaseURL: "https://maria-jose-2515e-default-rtdb.firebaseio.com",
+  projectId: "maria-jose-2515e",
+  storageBucket: "maria-jose-2515e.firebasestorage.app",
+  messagingSenderId: "428877808209",
+  appId: "1:428877808209:web:fdcbf3549a356664366e70"
+};
+
+let FIREBASE_READY = firebaseConfig.apiKey !== "PEGA_AQUI" && firebaseConfig.databaseURL !== "PEGA_AQUI_URL_RTDB";
+let dbRef = null;
+try{
+  if(FIREBASE_READY){
+    if(typeof firebase === 'undefined'){
+      throw new Error('El SDK de Firebase no cargó (puede ser un bloqueador de anuncios/rastreo)');
+    }
+    firebase.initializeApp(firebaseConfig);
+    dbRef = firebase.database().ref('evento_checkin_v1');
+  } else {
+    console.warn('Falta configurar Firebase: pega tu firebaseConfig en el <script> del archivo.');
+  }
+}catch(e){
+  console.error('No se pudo inicializar Firebase:', e.message);
+  FIREBASE_READY = false;
+}
+
+// Lista base de invitados originales
+const BASE_NAMES = [
+"arley","Arnolis","Breiner","Camilo y sofia","coco y familia","darlis","Dedier","Dileidy",
+"Doña Elvia","Doña Lina","Eduar y familia","ellen","Eloina Acosta","Enilda y familia",
+"Familia Bejarano Ortega","Gildardo y familia","gladis y esposo","isabella","Isela y familia",
+"Jader y leslie","Jair y familia","Jamir y familia","Jessica y familia","jhey r.","Jilber",
+"Jisela y familia","johan camilo","Jorge y familia","Juan david","Karen","Kelly acosta",
+"Kety acosta","Kevin","ladys y esposo","ledys","Mafe y tiffany","Marcela y Familia",
+"Marcilia y familia","Mari Sofia","Maria y familia","Maryoris y familia","Mayerli y michelle",
+"Mayerli","meraris","Michelle dayana","Milca y esposo","Nayibis y familia","Orlando y familia",
+"panfido y erlinda","Rosa y familia","Sandy y familia","Sara","Scarleth","Soris y familia",
+"steven","Tatiana","Tia esperanza y familia","Tia lolita y familia","Tia nuris y familia",
+"tia rocio y familia","Tio Nestor y familia","Tio Ricardo y familia","veronica",
+"Familia Vivas Bejarano","Wendy","yacer","Yaser","Yiny y familia","Yomara","yuber y diego",
+"Yuliana","Yulis y geids",
+"Erika y familia","Yeider","Lliana y Maria Teresa","Jairo y Familia","neidis y esposo","Familia Villabejape"
+];
+
+// guests: objeto { id: { name, type, count, checked, time, custom } }
+// type: 'individual' (1), 'pareja' (2), 'familia' (pregunta al marcar)
+let guests = {};
+let currentBackground = 'floral';
+let saveTimeout = null;
+let pendingFamilyId = null;
+let pendingFamilyEvent = null;
+let pendingDeleteId = null;
+let receivingRemoteUpdate = false;
+
+// ---- Fondos y temas disponibles ----
+const DEFAULT_VARS = {
+  '--bg-1': '#fdf2f6', '--bg-2': '#fbe6ee', '--panel': '#ffffff', '--panel-soft': '#fff5f9',
+  '--border': '#f3d3e0', '--text': '#4a2635', '--text-dim': '#a9738b',
+  '--accent': '#d6558c', '--accent-deep': '#b6396f', '--accent-light': '#f7c9dc',
+  '--ok': '#4caf7d', '--ok-bg': '#e7f6ee', '--ok-border': '#b9e3ca'
+};
+
+const NEON_VARS = {
+  '--bg-1': '#060606', '--bg-2': '#0b0b0b', '--panel': '#121212', '--panel-soft': '#181818',
+  '--border': '#ffffff', '--text': '#f5f5f5', '--text-dim': '#a7aab0',
+  '--accent': '#39ff14', '--accent-deep': '#2ecc0f', '--accent-light': '#123312',
+  '--ok': '#39ff14', '--ok-bg': '#0d2b12', '--ok-border': '#39ff14'
+};
+
+const BACKGROUNDS = {
+  floral: {
+    label: 'Floral rosado',
+    vars: DEFAULT_VARS,
+    image: `radial-gradient(900px 500px at 90% -10%, rgba(214,85,140,0.10), transparent 60%),
+      radial-gradient(700px 400px at -10% 20%, rgba(214,85,140,0.08), transparent 55%),
+      linear-gradient(180deg, #fdf2f6, #fbe6ee 400px, #fdf2f6 100%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg fill='%23e8709f' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='10'/%3E%3Ccircle cx='45' cy='22' r='6'/%3E%3Ccircle cx='20' cy='45' r='5'/%3E%3Cpath d='M30 30 q8 -14 16 0 q-8 6 -16 0Z'/%3E%3C/g%3E%3Cg fill='%23e8709f' fill-opacity='0.045'%3E%3Ccircle cx='150' cy='120' r='12'/%3E%3Ccircle cx='168' cy='110' r='7'/%3E%3Ccircle cx='140' cy='140' r='6'/%3E%3Cpath d='M150 120 q9 -16 18 0 q-9 7 -18 0Z'/%3E%3C/g%3E%3Cg fill='%23e8709f' fill-opacity='0.04'%3E%3Ccircle cx='190' cy='40' r='7'/%3E%3Ccircle cx='60' cy='180' r='9'/%3E%3Ccircle cx='75' cy='170' r='5'/%3E%3C/g%3E%3C/svg%3E")`,
+    preview: 'linear-gradient(180deg, #fdf2f6, #fbe6ee), radial-gradient(circle at 30% 30%, #f2b8d3 4px, transparent 5px), radial-gradient(circle at 70% 60%, #e8709f 5px, transparent 6px)'
+  },
+  dorado: {
+    label: 'Dorado XV',
+    vars: DEFAULT_VARS,
+    image: `radial-gradient(900px 500px at 90% -10%, rgba(230,180,90,0.14), transparent 60%),
+      radial-gradient(700px 400px at -10% 20%, rgba(230,180,90,0.1), transparent 55%),
+      linear-gradient(180deg, #fdf8ee, #f7ecd2 400px, #fdf8ee 100%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cg fill='%23c9962f' fill-opacity='0.09'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3Ccircle cx='100' cy='60' r='2'/%3E%3Ccircle cx='160' cy='20' r='2'/%3E%3Ccircle cx='60' cy='120' r='2'/%3E%3Ccircle cx='150' cy='140' r='2'/%3E%3Ccircle cx='20' cy='170' r='2'/%3E%3C/g%3E%3C/svg%3E")`,
+    preview: 'linear-gradient(180deg, #fdf8ee, #f7ecd2), radial-gradient(circle at 35% 35%, #e6b45a 4px, transparent 5px), radial-gradient(circle at 70% 65%, #c9962f 4px, transparent 5px)'
+  },
+  corazones: {
+    label: 'Corazones',
+    vars: DEFAULT_VARS,
+    image: `radial-gradient(900px 500px at 90% -10%, rgba(214,85,140,0.10), transparent 60%),
+      linear-gradient(180deg, #fff5f8, #fde3ec 400px, #fff5f8 100%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpath d='M30 20c-4-6-14-6-16 2-2 8 6 14 16 22 10-8 18-14 16-22-2-8-12-8-16-2Z' fill='%23e8709f' fill-opacity='0.10'/%3E%3Cpath d='M90 70c-3-5-11-5-12 1-1 6 5 11 12 17 7-6 13-11 12-17-1-6-9-6-12-1Z' fill='%23e8709f' fill-opacity='0.09'/%3E%3C/svg%3E")`,
+    preview: 'linear-gradient(180deg, #fff5f8, #fde3ec), radial-gradient(circle at 40% 40%, #e8709f 5px, transparent 6px)'
+  },
+  plano: {
+    label: 'Suave sin patrón',
+    vars: DEFAULT_VARS,
+    image: `radial-gradient(900px 500px at 90% -10%, rgba(214,85,140,0.08), transparent 60%),
+      linear-gradient(180deg, #fdf2f6, #fbe6ee 400px, #fdf2f6 100%)`,
+    preview: 'linear-gradient(180deg, #fdf2f6, #fbe6ee)'
+  },
+  confeti: {
+    label: 'Confeti de fiesta',
+    vars: DEFAULT_VARS,
+    image: `radial-gradient(900px 500px at 90% -10%, rgba(214,85,140,0.10), transparent 60%),
+      linear-gradient(180deg, #fdf2f6, #fbe6ee 400px, #fdf2f6 100%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg%3E%3Crect x='20' y='20' width='6' height='6' fill='%23e8709f' fill-opacity='0.16' transform='rotate(20 23 23)'/%3E%3Crect x='100' y='40' width='6' height='6' fill='%23e6b45a' fill-opacity='0.18' transform='rotate(-15 103 43)'/%3E%3Crect x='60' y='100' width='6' height='6' fill='%23d6558c' fill-opacity='0.16' transform='rotate(35 63 103)'/%3E%3Crect x='130' y='120' width='6' height='6' fill='%23e8709f' fill-opacity='0.14' transform='rotate(10 133 123)'/%3E%3Ccircle cx='40' cy='130' r='3' fill='%23e6b45a' fill-opacity='0.2'/%3E%3Ccircle cx='140' cy='60' r='3' fill='%23d6558c' fill-opacity='0.18'/%3E%3C/g%3E%3C/svg%3E")`,
+    preview: 'linear-gradient(180deg, #fdf2f6, #fbe6ee), radial-gradient(circle at 30% 60%, #e6b45a 4px, transparent 5px), radial-gradient(circle at 65% 30%, #d6558c 4px, transparent 5px)'
+  },
+  neon: {
+    label: 'Neón oscuro ⚡',
+    vars: NEON_VARS,
+    neon: true,
+    image: `radial-gradient(700px 400px at 20% 10%, rgba(57,255,20,0.06), transparent 60%),
+      radial-gradient(600px 400px at 85% 80%, rgba(255,255,255,0.05), transparent 55%),
+      linear-gradient(180deg, #060606, #0b0b0b 400px, #060606 100%)`,
+    preview: 'linear-gradient(180deg, #060606, #0b0b0b), radial-gradient(circle at 35% 35%, #39ff14 4px, transparent 5px), radial-gradient(circle at 70% 65%, #ffffff 3px, transparent 4px)'
+  }
+};
+
+function applyBackground(id){
+  const bg = BACKGROUNDS[id] || BACKGROUNDS.floral;
+  document.body.style.backgroundImage = bg.image.replace(/\s+/g, ' ');
+  document.body.style.backgroundRepeat = 'repeat';
+  document.body.style.backgroundAttachment = 'fixed';
+  const vars = bg.vars || DEFAULT_VARS;
+  Object.keys(vars).forEach(k => document.documentElement.style.setProperty(k, vars[k]));
+  document.body.classList.toggle('theme-neon', !!bg.neon);
+  currentBackground = BACKGROUNDS[id] ? id : 'floral';
+}
+
+// Clasifica un nombre base para saber cuántas personas representa (solo para la siembra inicial)
+function classifyName(name){
+  const lower = name.toLowerCase();
+  if(lower.startsWith('familia ') || / y familia\b/.test(lower)){
+    return { type:'familia', count:null };
+  }
+  if(/ y /.test(lower)){
+    return { type:'pareja', count:2 };
+  }
+  return { type:'individual', count:1 };
+}
+
+function labelForType(type){
+  if(type === 'familia') return 'grupo';
+  if(type === 'pareja') return '2 personas';
+  return '1 persona';
+}
+
+function defaultCountForType(type){
+  if(type === 'familia') return null;
+  if(type === 'pareja') return 2;
+  return 1;
+}
+
+// Construye la lista base de invitados (se usa solo si Firebase está vacío)
+function seedGuests(){
+  const seeded = {};
+  BASE_NAMES.forEach((name, i) => {
+    const info = classifyName(name);
+    seeded['b' + i] = { name, type: info.type, count: info.count, checked:false, time:null, custom:false };
+  });
+  return seeded;
+}
+
+function generateCustomId(){
+  return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+// Agrega a Firebase los nombres de BASE_NAMES que aún no existen (sin tocar los que ya están marcados)
+function mergeMissingBaseGuests(){
+  const existingNames = new Set(Object.values(guests).map(g => g.name));
+  let added = false;
+  BASE_NAMES.forEach(name => {
+    if(!existingNames.has(name)){
+      const info = classifyName(name);
+      guests[generateCustomId()] = { name, type: info.type, count: info.count, checked:false, time:null, custom:false };
+      added = true;
+    }
+  });
+  return added;
+}
+
+async function loadState(){
+  guests = seedGuests();
+  applyBackground(currentBackground);
+  render(); // mostrar la lista base de una vez, sin esperar a Firebase
+
+  if(!FIREBASE_READY){
+    document.getElementById('saveText').textContent = 'Sin conectar (falta configurar Firebase)';
+    document.querySelector('.save-dot').style.background = '#c14b6a';
+    return;
+  }
+
+  dbRef.on('value', (snapshot) => {
+    const data = snapshot.val();
+    if(data && data.guests){
+      receivingRemoteUpdate = true;
+      guests = data.guests;
+      if(data.background) applyBackground(data.background);
+      render();
+      receivingRemoteUpdate = false;
+      const addedNew = mergeMissingBaseGuests();
+      if(addedNew){
+        render();
+        scheduleSave();
+      }
+    } else {
+      // primera vez que se usa: sembrar la base en Firebase
+      dbRef.set({ guests, background: currentBackground }).catch(e => console.error('Error sembrando datos:', e));
+    }
+  }, (err) => {
+    document.getElementById('saveText').textContent = 'Error de conexión con Firebase';
+    document.querySelector('.save-dot').style.background = '#c14b6a';
+    console.error('Firebase error:', err);
+  });
+}
+
+function scheduleSave(){
+  if(receivingRemoteUpdate) return;
+  const indicator = document.getElementById('saveText');
+  if(!FIREBASE_READY){
+    indicator.textContent = 'Sin conectar (falta configurar Firebase)';
+    return;
+  }
+  indicator.textContent = 'Guardando...';
+  if(saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    try{
+      await dbRef.set({ guests, background: currentBackground });
+      indicator.textContent = 'Sincronizado con el equipo';
+    }catch(e){
+      indicator.textContent = 'Error al guardar, reintentando...';
+      console.error('Error guardando en Firebase:', e.code || e.message || e);
+      setTimeout(scheduleSave, 1500);
+    }
+  }, 300);
+}
+
+function toggle(id, event){
+  const g = guests[id];
+  if(!g) return;
+
+  if(g.type === 'familia'){
+    if(g.checked){
+      g.checked = false;
+      g.time = null;
+      scheduleSave();
+      render();
+    } else {
+      openFamilyModal(id, event);
+    }
+    return;
+  }
+
+  g.checked = !g.checked;
+  g.time = g.checked ? new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'}) : null;
+  scheduleSave();
+  render();
+  if(g.checked){
+    celebrate(event);
+    bounceRow(id);
+  }
+}
+
+function openFamilyModal(id, event){
+  pendingFamilyId = id;
+  pendingFamilyEvent = event;
+  document.getElementById('modalGuestName').textContent = guests[id].name;
+  const input = document.getElementById('modalCountInput');
+  input.value = guests[id].count || 3;
+  document.getElementById('familyModal').style.display = 'flex';
+  setTimeout(() => input.select(), 50);
+}
+
+function closeFamilyModal(){
+  document.getElementById('familyModal').style.display = 'none';
+  pendingFamilyId = null;
+}
+
+function confirmFamilyModal(){
+  const id = pendingFamilyId;
+  if(!id || !guests[id]) return;
+  const val = parseInt(document.getElementById('modalCountInput').value, 10);
+  const count = (isNaN(val) || val < 1) ? 1 : val;
+  guests[id].checked = true;
+  guests[id].count = count;
+  guests[id].time = new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'});
+  scheduleSave();
+  const ev = pendingFamilyEvent;
+  closeFamilyModal();
+  render();
+  celebrate(ev);
+  bounceRow(id);
+}
+
+function bounceRow(id){
+  requestAnimationFrame(() => {
+    const el = document.querySelector(`.guest[data-id="${id}"]`);
+    if(el){
+      el.classList.add('just-checked');
+      setTimeout(() => el.classList.remove('just-checked'), 500);
+    }
+  });
+}
+
+// Pequeña explosión de confeti / corazones al confirmar una entrada
+function celebrate(event){
+  const emojis = ['🎉','💕','✨','🌸','💗'];
+  let x = window.innerWidth / 2;
+  let y = window.innerHeight / 2;
+  if(event && event.clientX){
+    x = event.clientX;
+    y = event.clientY;
+  }
+  const count = 10;
+  for(let i = 0; i < count; i++){
+    const piece = document.createElement('span');
+    piece.className = 'confetti-piece';
+    piece.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+    const dist = 60 + Math.random() * 70;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist - 30;
+    piece.style.left = x + 'px';
+    piece.style.top = y + 'px';
+    piece.style.setProperty('--dx', dx + 'px');
+    piece.style.setProperty('--dy', dy + 'px');
+    piece.style.setProperty('--rot', (Math.random() * 360 - 180) + 'deg');
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 950);
+  }
+}
+
+function render(){
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filter = document.getElementById('filterSelect').value;
+  const list = document.getElementById('list');
+  const emptyState = document.getElementById('emptyState');
+
+  let ids = Object.keys(guests).filter(id => guests[id].name.toLowerCase().includes(search));
+  if(filter === 'entraron') ids = ids.filter(id => guests[id].checked);
+  if(filter === 'faltan') ids = ids.filter(id => !guests[id].checked);
+
+  list.innerHTML = '';
+  if(ids.length === 0){
+    emptyState.style.display = 'block';
+  } else {
+    emptyState.style.display = 'none';
+    ids.forEach(id => {
+      const g = guests[id];
+      const div = document.createElement('div');
+      div.className = 'guest' + (g.checked ? ' checked' : '');
+      div.dataset.id = id;
+      div.onclick = (ev) => toggle(id, ev);
+
+      let badgeText;
+      if(g.type === 'familia'){
+        badgeText = g.checked ? (g.count + (g.count === 1 ? ' persona' : ' personas')) : 'grupo';
+      } else {
+        badgeText = labelForType(g.type);
+      }
+
+      const timeBlock = g.checked
+        ? `<span class="count-line">${g.type === 'familia' ? (g.count + ' 👥') : ''}</span>${g.time}`
+        : '';
+
+      div.innerHTML = `
+        <div class="guest-left">
+          <div class="checkbox">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <div class="guest-name${g.custom ? ' custom' : ''}">${escapeHtml(g.name)}</div>
+          <span class="badge">${badgeText}</span>
+        </div>
+        <div class="guest-right">
+          <div class="guest-time">${timeBlock}</div>
+          <div class="delete-btn" data-delete-id="${id}" title="Borrar invitado">✕</div>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  // listeners de borrar (separados del click de la fila)
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDeleteModal(btn.dataset.deleteId);
+    });
+  });
+
+  updateStats();
+}
+
+function updateStats(){
+  const ids = Object.keys(guests);
+  const total = ids.length;
+  const entraron = ids.filter(id => guests[id].checked).length;
+  const faltan = total - entraron;
+  const personas = ids.reduce((sum, id) => sum + (guests[id].checked ? (guests[id].count || 1) : 0), 0);
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statEntraron').textContent = entraron;
+  document.getElementById('statFaltan').textContent = faltan;
+  document.getElementById('statPersonas').textContent = personas;
+  document.getElementById('progressFill').style.width = (total ? (entraron/total*100) : 0) + '%';
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+document.getElementById('searchInput').addEventListener('input', render);
+document.getElementById('filterSelect').addEventListener('change', render);
+
+document.getElementById('resetBtn').addEventListener('click', async () => {
+  if(confirm('¿Reiniciar la lista para todos? Esto marcará a todos como "no han entrado" (los invitados añadidos manualmente no se borran).')){
+    Object.keys(guests).forEach(id => {
+      guests[id].checked = false;
+      guests[id].time = null;
+      if(guests[id].type === 'familia') guests[id].count = null;
+    });
+    scheduleSave();
+    render();
+  }
+});
+
+// ---- Modal: familia (preguntar cuántos llegaron) ----
+document.getElementById('modalConfirmBtn').addEventListener('click', confirmFamilyModal);
+document.getElementById('modalCancelBtn').addEventListener('click', closeFamilyModal);
+document.getElementById('modalCountInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') confirmFamilyModal();
+});
+document.getElementById('familyModal').addEventListener('click', (e) => {
+  if(e.target.id === 'familyModal') closeFamilyModal();
+});
+
+// ---- Modal: añadir invitado ----
+const addGuestModal = document.getElementById('addGuestModal');
+const addGuestNameInput = document.getElementById('addGuestName');
+
+document.getElementById('addGuestBtn').addEventListener('click', () => {
+  addGuestNameInput.value = '';
+  document.querySelectorAll('#addGuestTypeOptions .type-option').forEach(el => el.classList.remove('selected'));
+  const first = document.querySelector('#addGuestTypeOptions .type-option[data-type="individual"]');
+  first.classList.add('selected');
+  first.querySelector('input').checked = true;
+  addGuestModal.style.display = 'flex';
+  setTimeout(() => addGuestNameInput.focus(), 50);
+});
+
+document.querySelectorAll('#addGuestTypeOptions .type-option').forEach(label => {
+  label.addEventListener('click', () => {
+    document.querySelectorAll('#addGuestTypeOptions .type-option').forEach(el => el.classList.remove('selected'));
+    label.classList.add('selected');
+    label.querySelector('input').checked = true;
+  });
+});
+
+function closeAddGuestModal(){
+  addGuestModal.style.display = 'none';
+}
+
+document.getElementById('addGuestCancelBtn').addEventListener('click', closeAddGuestModal);
+addGuestModal.addEventListener('click', (e) => {
+  if(e.target.id === 'addGuestModal') closeAddGuestModal();
+});
+
+document.getElementById('addGuestConfirmBtn').addEventListener('click', () => {
+  const name = addGuestNameInput.value.trim();
+  if(!name){
+    addGuestNameInput.focus();
+    addGuestNameInput.style.borderColor = '#c14b6a';
+    setTimeout(() => addGuestNameInput.style.borderColor = '', 1200);
+    return;
+  }
+  const selectedType = document.querySelector('#addGuestTypeOptions input[name="addGuestType"]:checked').value;
+  const id = generateCustomId();
+  guests[id] = {
+    name,
+    type: selectedType,
+    count: defaultCountForType(selectedType),
+    checked:false,
+    time:null,
+    custom:true
+  };
+  scheduleSave();
+  closeAddGuestModal();
+  render();
+});
+
+addGuestNameInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') document.getElementById('addGuestConfirmBtn').click();
+});
+
+// ---- Modal: borrar invitado ----
+const deleteGuestModal = document.getElementById('deleteGuestModal');
+
+function openDeleteModal(id){
+  if(!guests[id]) return;
+  pendingDeleteId = id;
+  document.getElementById('deleteGuestName').textContent = `¿Borrar a "${guests[id].name}" de la lista? Esta acción no se puede deshacer.`;
+  deleteGuestModal.style.display = 'flex';
+}
+
+function closeDeleteModal(){
+  deleteGuestModal.style.display = 'none';
+  pendingDeleteId = null;
+}
+
+document.getElementById('deleteGuestCancelBtn').addEventListener('click', closeDeleteModal);
+deleteGuestModal.addEventListener('click', (e) => {
+  if(e.target.id === 'deleteGuestModal') closeDeleteModal();
+});
+
+document.getElementById('deleteGuestConfirmBtn').addEventListener('click', () => {
+  if(!pendingDeleteId) return;
+  delete guests[pendingDeleteId];
+  scheduleSave();
+  closeDeleteModal();
+  render();
+});
+
+// ---- Modal: elegir fondo ----
+const bgModal = document.getElementById('bgModal');
+const bgGrid = document.getElementById('bgGrid');
+
+function renderBgGrid(){
+  bgGrid.innerHTML = '';
+  Object.keys(BACKGROUNDS).forEach(id => {
+    const bg = BACKGROUNDS[id];
+    const swatch = document.createElement('div');
+    swatch.className = 'bg-swatch' + (id === currentBackground ? ' selected' : '');
+    swatch.innerHTML = `
+      <div class="bg-swatch-preview" style="background:${bg.preview}; background-size: 60px 60px, 60px 60px, 60px 60px;"></div>
+      <div class="bg-swatch-label">${bg.label}</div>
+    `;
+    swatch.addEventListener('click', () => {
+      applyBackground(id);
+      scheduleSave();
+      renderBgGrid();
+    });
+    bgGrid.appendChild(swatch);
+  });
+}
+
+document.getElementById('bgBtn').addEventListener('click', () => {
+  renderBgGrid();
+  bgModal.style.display = 'flex';
+});
+document.getElementById('bgCloseBtn').addEventListener('click', () => {
+  bgModal.style.display = 'none';
+});
+bgModal.addEventListener('click', (e) => {
+  if(e.target.id === 'bgModal') bgModal.style.display = 'none';
+});
+
+// ---- Imprimir ----
+document.getElementById('printBtn').addEventListener('click', openPrintWindow);
+
+function openPrintWindow(){
+  const ids = Object.keys(guests).filter(id => guests[id].checked);
+  const totalPersonas = ids.reduce((sum, id) => sum + (guests[id].count || 1), 0);
+
+  const rows = ids.map(id => {
+    const g = guests[id];
+    return `<tr>
+      <td>${escapeHtml(g.name)}</td>
+      <td style="text-align:center;">${g.count || 1}</td>
+      <td style="text-align:center;">${g.time || ''}</td>
+    </tr>`;
+  }).join('');
+
+  const fecha = new Date().toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' });
+
+  const html = `<!DOCTYPE html>
+  <html lang="es"><head><meta charset="UTF-8"><title>Reporte de entradas</title>
+  <style>
+    body{ font-family: Georgia, 'Times New Roman', serif; color:#4a2635; padding:36px; }
+    h1{ color:#b6396f; margin-bottom:0; }
+    .sub{ color:#a9738b; font-size:0.9rem; margin-top:4px; margin-bottom:24px; }
+    table{ width:100%; border-collapse:collapse; }
+    th{ text-align:left; background:#fbe6ee; color:#b6396f; padding:8px 10px; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; }
+    td{ padding:8px 10px; border-bottom:1px solid #f3d3e0; font-size:0.92rem; }
+    .summary{ margin-top:26px; padding:16px 20px; background:#fff5f9; border:1px solid #f3d3e0; border-radius:10px; display:flex; gap:30px; }
+    .summary div b{ display:block; font-size:1.4rem; color:#b6396f; }
+    @media print{ body{ padding:14px; } }
+  </style>
+  </head><body>
+    <h1>Reporte de entradas</h1>
+    <div class="sub">Generado el ${fecha}</div>
+    <table>
+      <thead><tr><th>Invitación</th><th style="text-align:center;">Personas</th><th style="text-align:center;">Hora</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="3" style="text-align:center;color:#a9738b;">Aún no ha entrado nadie</td></tr>'}</tbody>
+    </table>
+    <div class="summary">
+      <div><b>${ids.length}</b>invitaciones registradas</div>
+      <div><b>${totalPersonas}</b>personas en total</div>
+    </div>
+  </body></html>`;
+
+  const win = window.open('', '_blank', 'width=800,height=900');
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 300);
+}
+
+loadState();
+</script>
+
+</body>
+</html>
