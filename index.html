@@ -263,23 +263,6 @@
   .type-option input{ accent-color: var(--accent); width:16px; height:16px; flex-shrink:0; }
   .type-option.selected{ border-color:var(--accent); background:var(--panel-soft); }
 
-  .bg-grid{
-    display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-bottom:6px;
-  }
-  .bg-swatch{
-    cursor:pointer; border-radius:12px; border:2px solid var(--border); overflow:hidden;
-    transition: border-color 0.15s, transform 0.15s;
-  }
-  .bg-swatch:hover{ transform: translateY(-2px); }
-  .bg-swatch.selected{ border-color:var(--accent-deep); box-shadow: 0 0 0 3px var(--accent-light); }
-  .bg-swatch-preview{
-    height:56px; width:100%;
-  }
-  .bg-swatch-label{
-    font-size:0.68rem; text-align:center; padding:6px 4px; color:var(--text-dim); font-weight:600;
-    background:var(--panel);
-  }
-
   .empty-state{
     text-align:center; padding:60px 20px; color:var(--text-dim);
   }
@@ -300,35 +283,6 @@
     .stat-card .num{ font-size:1.3rem; }
     .deco-corner{ width:70px; }
   }
-
-  /* ---- Tema neón oscuro ---- */
-  body.theme-neon .deco-corner{ display:none; }
-  body.theme-neon header{
-    background: rgba(6,6,6,0.92) !important;
-  }
-  body.theme-neon .title-block svg path{ fill:#39ff14 !important; }
-  body.theme-neon .title-block h1{ text-shadow: 0 0 10px rgba(255,255,255,0.35); }
-  body.theme-neon .btn,
-  body.theme-neon .stat-card,
-  body.theme-neon .guest,
-  body.theme-neon .modal-box,
-  body.theme-neon .search-wrap input,
-  body.theme-neon select,
-  body.theme-neon .checkbox,
-  body.theme-neon .bg-swatch{
-    box-shadow: 0 0 6px 1px rgba(255,255,255,0.35), 0 0 1px rgba(255,255,255,0.8) inset;
-  }
-  body.theme-neon .btn:hover{
-    box-shadow: 0 0 10px 2px rgba(255,255,255,0.55), 0 0 1px rgba(255,255,255,0.9) inset;
-  }
-  body.theme-neon .guest.checked{
-    box-shadow: 0 0 12px 3px rgba(57,255,20,0.55), 0 0 2px rgba(57,255,20,0.9) inset;
-  }
-  body.theme-neon .save-dot{ box-shadow: 0 0 8px 2px #39ff14; }
-  body.theme-neon .progress-fill{ box-shadow: 0 0 8px 1px rgba(57,255,20,0.6); }
-  body.theme-neon .btn.primary{ box-shadow: 0 0 10px 2px rgba(57,255,20,0.5); }
-  body.theme-neon .badge{ box-shadow: 0 0 4px 0 rgba(255,255,255,0.3); }
-  body.theme-neon .bg-swatch.selected{ box-shadow: 0 0 0 3px rgba(57,255,20,0.5), 0 0 10px 2px rgba(57,255,20,0.5); }
 </style>
 </head>
 <body>
@@ -400,7 +354,7 @@
       <option value="faltan">Faltan</option>
     </select>
     <button class="btn primary" id="addGuestBtn">➕ Añadir invitado</button>
-    <button class="btn" id="bgBtn">🎨 Fondo</button>
+    <button class="btn" id="lookupBtn">🔎 Consultar entradas</button>
     <button class="btn" id="printBtn">🖨️ Imprimir entradas</button>
     <button class="btn danger" id="resetBtn">Reiniciar lista</button>
   </div>
@@ -461,17 +415,6 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="bgModal" style="display:none;">
-  <div class="modal-box" style="max-width:420px;">
-    <h3>Elegir fondo 🎨</h3>
-    <p class="modal-name" style="margin-bottom:16px;">El fondo se aplica para todos los que abran esta página.</p>
-    <div class="bg-grid" id="bgGrid"></div>
-    <div class="modal-actions">
-      <button class="cancel" id="bgCloseBtn">Cerrar</button>
-    </div>
-  </div>
-</div>
-
 <footer>Evento · lista compartida entre todos los encargados de la entrada</footer>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
@@ -522,97 +465,18 @@ const BASE_NAMES = [
 "tia rocio y familia","Tio Nestor y familia","Tio Ricardo y familia","veronica",
 "Familia Vivas Bejarano","Wendy","yacer","Yaser","Yiny y familia","Yomara","yuber y diego",
 "Yuliana","Yulis y geids",
-"Erika y familia","Yeider","Lliana y Maria Teresa","Jairo y Familia","neidis y esposo","Familia Villabejape"
+"Panda y familia","Yeider","Lliana y Maria Teresa","Jairo y Familia","neidis y esposo","Familia Villabejape"
 ];
 
 // guests: objeto { id: { name, type, count, checked, time, custom } }
 // type: 'individual' (1), 'pareja' (2), 'familia' (pregunta al marcar)
 let guests = {};
-let currentBackground = 'floral';
 let saveTimeout = null;
 let pendingFamilyId = null;
 let pendingFamilyEvent = null;
 let pendingDeleteId = null;
 let receivingRemoteUpdate = false;
 
-// ---- Fondos y temas disponibles ----
-const DEFAULT_VARS = {
-  '--bg-1': '#fdf2f6', '--bg-2': '#fbe6ee', '--panel': '#ffffff', '--panel-soft': '#fff5f9',
-  '--border': '#f3d3e0', '--text': '#4a2635', '--text-dim': '#a9738b',
-  '--accent': '#d6558c', '--accent-deep': '#b6396f', '--accent-light': '#f7c9dc',
-  '--ok': '#4caf7d', '--ok-bg': '#e7f6ee', '--ok-border': '#b9e3ca'
-};
-
-const NEON_VARS = {
-  '--bg-1': '#060606', '--bg-2': '#0b0b0b', '--panel': '#121212', '--panel-soft': '#181818',
-  '--border': '#ffffff', '--text': '#f5f5f5', '--text-dim': '#a7aab0',
-  '--accent': '#39ff14', '--accent-deep': '#2ecc0f', '--accent-light': '#123312',
-  '--ok': '#39ff14', '--ok-bg': '#0d2b12', '--ok-border': '#39ff14'
-};
-
-const BACKGROUNDS = {
-  floral: {
-    label: 'Floral rosado',
-    vars: DEFAULT_VARS,
-    image: `radial-gradient(900px 500px at 90% -10%, rgba(214,85,140,0.10), transparent 60%),
-      radial-gradient(700px 400px at -10% 20%, rgba(214,85,140,0.08), transparent 55%),
-      linear-gradient(180deg, #fdf2f6, #fbe6ee 400px, #fdf2f6 100%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg fill='%23e8709f' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='10'/%3E%3Ccircle cx='45' cy='22' r='6'/%3E%3Ccircle cx='20' cy='45' r='5'/%3E%3Cpath d='M30 30 q8 -14 16 0 q-8 6 -16 0Z'/%3E%3C/g%3E%3Cg fill='%23e8709f' fill-opacity='0.045'%3E%3Ccircle cx='150' cy='120' r='12'/%3E%3Ccircle cx='168' cy='110' r='7'/%3E%3Ccircle cx='140' cy='140' r='6'/%3E%3Cpath d='M150 120 q9 -16 18 0 q-9 7 -18 0Z'/%3E%3C/g%3E%3Cg fill='%23e8709f' fill-opacity='0.04'%3E%3Ccircle cx='190' cy='40' r='7'/%3E%3Ccircle cx='60' cy='180' r='9'/%3E%3Ccircle cx='75' cy='170' r='5'/%3E%3C/g%3E%3C/svg%3E")`,
-    preview: 'linear-gradient(180deg, #fdf2f6, #fbe6ee), radial-gradient(circle at 30% 30%, #f2b8d3 4px, transparent 5px), radial-gradient(circle at 70% 60%, #e8709f 5px, transparent 6px)'
-  },
-  dorado: {
-    label: 'Dorado XV',
-    vars: DEFAULT_VARS,
-    image: `radial-gradient(900px 500px at 90% -10%, rgba(230,180,90,0.14), transparent 60%),
-      radial-gradient(700px 400px at -10% 20%, rgba(230,180,90,0.1), transparent 55%),
-      linear-gradient(180deg, #fdf8ee, #f7ecd2 400px, #fdf8ee 100%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cg fill='%23c9962f' fill-opacity='0.09'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3Ccircle cx='100' cy='60' r='2'/%3E%3Ccircle cx='160' cy='20' r='2'/%3E%3Ccircle cx='60' cy='120' r='2'/%3E%3Ccircle cx='150' cy='140' r='2'/%3E%3Ccircle cx='20' cy='170' r='2'/%3E%3C/g%3E%3C/svg%3E")`,
-    preview: 'linear-gradient(180deg, #fdf8ee, #f7ecd2), radial-gradient(circle at 35% 35%, #e6b45a 4px, transparent 5px), radial-gradient(circle at 70% 65%, #c9962f 4px, transparent 5px)'
-  },
-  corazones: {
-    label: 'Corazones',
-    vars: DEFAULT_VARS,
-    image: `radial-gradient(900px 500px at 90% -10%, rgba(214,85,140,0.10), transparent 60%),
-      linear-gradient(180deg, #fff5f8, #fde3ec 400px, #fff5f8 100%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpath d='M30 20c-4-6-14-6-16 2-2 8 6 14 16 22 10-8 18-14 16-22-2-8-12-8-16-2Z' fill='%23e8709f' fill-opacity='0.10'/%3E%3Cpath d='M90 70c-3-5-11-5-12 1-1 6 5 11 12 17 7-6 13-11 12-17-1-6-9-6-12-1Z' fill='%23e8709f' fill-opacity='0.09'/%3E%3C/svg%3E")`,
-    preview: 'linear-gradient(180deg, #fff5f8, #fde3ec), radial-gradient(circle at 40% 40%, #e8709f 5px, transparent 6px)'
-  },
-  plano: {
-    label: 'Suave sin patrón',
-    vars: DEFAULT_VARS,
-    image: `radial-gradient(900px 500px at 90% -10%, rgba(214,85,140,0.08), transparent 60%),
-      linear-gradient(180deg, #fdf2f6, #fbe6ee 400px, #fdf2f6 100%)`,
-    preview: 'linear-gradient(180deg, #fdf2f6, #fbe6ee)'
-  },
-  confeti: {
-    label: 'Confeti de fiesta',
-    vars: DEFAULT_VARS,
-    image: `radial-gradient(900px 500px at 90% -10%, rgba(214,85,140,0.10), transparent 60%),
-      linear-gradient(180deg, #fdf2f6, #fbe6ee 400px, #fdf2f6 100%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg%3E%3Crect x='20' y='20' width='6' height='6' fill='%23e8709f' fill-opacity='0.16' transform='rotate(20 23 23)'/%3E%3Crect x='100' y='40' width='6' height='6' fill='%23e6b45a' fill-opacity='0.18' transform='rotate(-15 103 43)'/%3E%3Crect x='60' y='100' width='6' height='6' fill='%23d6558c' fill-opacity='0.16' transform='rotate(35 63 103)'/%3E%3Crect x='130' y='120' width='6' height='6' fill='%23e8709f' fill-opacity='0.14' transform='rotate(10 133 123)'/%3E%3Ccircle cx='40' cy='130' r='3' fill='%23e6b45a' fill-opacity='0.2'/%3E%3Ccircle cx='140' cy='60' r='3' fill='%23d6558c' fill-opacity='0.18'/%3E%3C/g%3E%3C/svg%3E")`,
-    preview: 'linear-gradient(180deg, #fdf2f6, #fbe6ee), radial-gradient(circle at 30% 60%, #e6b45a 4px, transparent 5px), radial-gradient(circle at 65% 30%, #d6558c 4px, transparent 5px)'
-  },
-  neon: {
-    label: 'Neón oscuro ⚡',
-    vars: NEON_VARS,
-    neon: true,
-    image: `radial-gradient(700px 400px at 20% 10%, rgba(57,255,20,0.06), transparent 60%),
-      radial-gradient(600px 400px at 85% 80%, rgba(255,255,255,0.05), transparent 55%),
-      linear-gradient(180deg, #060606, #0b0b0b 400px, #060606 100%)`,
-    preview: 'linear-gradient(180deg, #060606, #0b0b0b), radial-gradient(circle at 35% 35%, #39ff14 4px, transparent 5px), radial-gradient(circle at 70% 65%, #ffffff 3px, transparent 4px)'
-  }
-};
-
-function applyBackground(id){
-  const bg = BACKGROUNDS[id] || BACKGROUNDS.floral;
-  document.body.style.backgroundImage = bg.image.replace(/\s+/g, ' ');
-  document.body.style.backgroundRepeat = 'repeat';
-  document.body.style.backgroundAttachment = 'fixed';
-  const vars = bg.vars || DEFAULT_VARS;
-  Object.keys(vars).forEach(k => document.documentElement.style.setProperty(k, vars[k]));
-  document.body.classList.toggle('theme-neon', !!bg.neon);
-  currentBackground = BACKGROUNDS[id] ? id : 'floral';
-}
 
 // Clasifica un nombre base para saber cuántas personas representa (solo para la siembra inicial)
 function classifyName(name){
@@ -666,9 +530,21 @@ function mergeMissingBaseGuests(){
   return added;
 }
 
+// Renombra invitados ya existentes cuyo nombre cambió en BASE_NAMES (ej. Erika -> Panda)
+function renameLegacyGuests(){
+  const renames = { 'Erika y familia': 'Panda y familia' };
+  let changed = false;
+  Object.keys(guests).forEach(id => {
+    if(renames[guests[id].name]){
+      guests[id].name = renames[guests[id].name];
+      changed = true;
+    }
+  });
+  return changed;
+}
+
 async function loadState(){
   guests = seedGuests();
-  applyBackground(currentBackground);
   render(); // mostrar la lista base de una vez, sin esperar a Firebase
 
   if(!FIREBASE_READY){
@@ -682,17 +558,17 @@ async function loadState(){
     if(data && data.guests){
       receivingRemoteUpdate = true;
       guests = data.guests;
-      if(data.background) applyBackground(data.background);
       render();
       receivingRemoteUpdate = false;
       const addedNew = mergeMissingBaseGuests();
-      if(addedNew){
+      const renamed = renameLegacyGuests();
+      if(addedNew || renamed){
         render();
         scheduleSave();
       }
     } else {
       // primera vez que se usa: sembrar la base en Firebase
-      dbRef.set({ guests, background: currentBackground }).catch(e => console.error('Error sembrando datos:', e));
+      dbRef.set({ guests }).catch(e => console.error('Error sembrando datos:', e));
     }
   }, (err) => {
     document.getElementById('saveText').textContent = 'Error de conexión con Firebase';
@@ -712,7 +588,7 @@ function scheduleSave(){
   if(saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
     try{
-      await dbRef.set({ guests, background: currentBackground });
+      await dbRef.set({ guests });
       indicator.textContent = 'Sincronizado con el equipo';
     }catch(e){
       indicator.textContent = 'Error al guardar, reintentando...';
@@ -1008,39 +884,137 @@ document.getElementById('deleteGuestConfirmBtn').addEventListener('click', () =>
   render();
 });
 
-// ---- Modal: elegir fondo ----
-const bgModal = document.getElementById('bgModal');
-const bgGrid = document.getElementById('bgGrid');
+// ---- Ventana: consultar entradas (solo lectura, busca y muestra quien ya entro) ----
+document.getElementById('lookupBtn').addEventListener('click', openLookupWindow);
 
-function renderBgGrid(){
-  bgGrid.innerHTML = '';
-  Object.keys(BACKGROUNDS).forEach(id => {
-    const bg = BACKGROUNDS[id];
-    const swatch = document.createElement('div');
-    swatch.className = 'bg-swatch' + (id === currentBackground ? ' selected' : '');
-    swatch.innerHTML = `
-      <div class="bg-swatch-preview" style="background:${bg.preview}; background-size: 60px 60px, 60px 60px, 60px 60px;"></div>
-      <div class="bg-swatch-label">${bg.label}</div>
-    `;
-    swatch.addEventListener('click', () => {
-      applyBackground(id);
-      scheduleSave();
-      renderBgGrid();
+function openLookupWindow(){
+  const configJson = JSON.stringify(firebaseConfig);
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consultar entradas</title>
+<style>
+  :root{
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --border: #e2e6ea;
+    --text: #1f2937;
+    --text-dim: #6b7280;
+    --accent: #2563eb;
+    --ok: #16a34a;
+    --ok-bg: #ecfdf3;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100vh; background:var(--bg);
+    font-family:'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    color:var(--text); padding:32px 16px 60px;
+  }
+  .wrap{ max-width:480px; margin:0 auto; }
+  h1{ font-size:1.3rem; margin:0 0 4px; text-align:center; }
+  .subtitle{ text-align:center; color:var(--text-dim); font-size:0.85rem; margin-bottom:22px; }
+  .search-box{
+    display:flex; align-items:center; gap:8px; background:var(--panel);
+    border:1px solid var(--border); border-radius:14px; padding:14px 16px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.04); margin-bottom:18px;
+  }
+  .search-box input{
+    flex:1; border:none; outline:none; font-size:1rem; background:transparent; color:var(--text);
+  }
+  .status-line{ text-align:center; font-size:0.78rem; color:var(--text-dim); margin-bottom:18px; }
+  .result{
+    background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;
+    gap:10px;
+  }
+  .result .name{ font-weight:600; font-size:0.95rem; }
+  .result .meta{ font-size:0.75rem; color:var(--text-dim); margin-top:2px; }
+  .pill{
+    font-size:0.7rem; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap;
+  }
+  .pill.in{ background:var(--ok-bg); color:var(--ok); }
+  .pill.out{ background:#fef2f2; color:#dc2626; }
+  .empty{ text-align:center; color:var(--text-dim); padding:40px 10px; font-size:0.9rem; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🔎 Consultar entradas</h1>
+    <p class="subtitle">Escribe un nombre para ver si ya registró su entrada.</p>
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" id="q" placeholder="Buscar por nombre..." autofocus>
+    </div>
+    <p class="status-line" id="status">Conectando...</p>
+    <div id="results"></div>
+  </div>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"><\/script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"><\/script>
+<script>
+  const firebaseConfig = ${configJson};
+  let guests = {};
+  try{
+    firebase.initializeApp(firebaseConfig);
+    const ref = firebase.database().ref('evento_checkin_v1');
+    ref.on('value', (snap) => {
+      const data = snap.val();
+      guests = (data && data.guests) ? data.guests : {};
+      document.getElementById('status').textContent = 'Actualizado en vivo';
+      render();
+    }, (err) => {
+      document.getElementById('status').textContent = 'Error de conexión';
     });
-    bgGrid.appendChild(swatch);
-  });
-}
+  }catch(e){
+    document.getElementById('status').textContent = 'No se pudo conectar';
+  }
 
-document.getElementById('bgBtn').addEventListener('click', () => {
-  renderBgGrid();
-  bgModal.style.display = 'flex';
-});
-document.getElementById('bgCloseBtn').addEventListener('click', () => {
-  bgModal.style.display = 'none';
-});
-bgModal.addEventListener('click', (e) => {
-  if(e.target.id === 'bgModal') bgModal.style.display = 'none';
-});
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function render(){
+    const q = document.getElementById('q').value.trim().toLowerCase();
+    const results = document.getElementById('results');
+    const ids = Object.keys(guests).filter(id => guests[id].name.toLowerCase().includes(q));
+    ids.sort((a,b) => guests[a].name.localeCompare(guests[b].name));
+
+    if(q === ''){
+      results.innerHTML = '<div class="empty">Escribe un nombre arriba para buscar 👆</div>';
+      return;
+    }
+    if(ids.length === 0){
+      results.innerHTML = '<div class="empty">No se encontró ningún invitado con ese nombre.</div>';
+      return;
+    }
+    results.innerHTML = ids.map(id => {
+      const g = guests[id];
+      const meta = g.checked ? ('Entró a las ' + (g.time || '')) : 'Aún no ha llegado';
+      return \`<div class="result">
+        <div>
+          <div class="name">\${escapeHtml(g.name)}</div>
+          <div class="meta">\${meta}</div>
+        </div>
+        <span class="pill \${g.checked ? 'in' : 'out'}">\${g.checked ? '✅ Dentro' : '⏳ Fuera'}</span>
+      </div>\`;
+    }).join('');
+  }
+
+  document.getElementById('q').addEventListener('input', render);
+  render();
+<\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=520,height=760');
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+}
 
 // ---- Imprimir ----
 document.getElementById('printBtn').addEventListener('click', openPrintWindow);
