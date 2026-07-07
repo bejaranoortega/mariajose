@@ -283,6 +283,46 @@
     .stat-card .num{ font-size:1.3rem; }
     .deco-corner{ width:70px; }
   }
+
+  /* ---- Vista de consulta (distinta al registro) ---- */
+  .lookup-view{
+    min-height:100vh;
+    background: linear-gradient(180deg, #eef4ff, #e4f7ee 55%, #eef4ff 100%);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    padding:28px 16px 60px;
+  }
+  .lookup-inner{ max-width:480px; margin:0 auto; }
+  .lookup-back{
+    background:none; border:none; color:#2563eb; font-weight:600; font-size:0.85rem;
+    cursor:pointer; padding:8px 0 20px; display:block;
+  }
+  .lookup-back:hover{ text-decoration:underline; }
+  .lookup-count-card{
+    background:#ffffff; border:1px solid #d7e3f7; border-radius:18px;
+    padding:26px 20px; text-align:center; margin-bottom:20px;
+    box-shadow:0 4px 18px rgba(37,99,235,0.08);
+  }
+  .lookup-count-num{ font-size:2.6rem; font-weight:800; color:#16a34a; line-height:1; }
+  .lookup-count-lbl{ font-size:0.8rem; color:#64748b; margin-top:6px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+  .lookup-search-wrap{
+    display:flex; align-items:center; gap:10px; background:#ffffff;
+    border:1px solid #d7e3f7; border-radius:14px; padding:14px 16px; margin-bottom:18px;
+    box-shadow:0 2px 10px rgba(37,99,235,0.05);
+  }
+  .lookup-search-wrap input{
+    flex:1; border:none; outline:none; font-size:1rem; background:transparent; color:#1f2937;
+  }
+  .lookup-result{
+    background:#ffffff; border:1px solid #e2e8f0; border-radius:12px;
+    padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  .lookup-result .name{ font-weight:600; font-size:0.95rem; color:#1f2937; }
+  .lookup-result .meta{ font-size:0.75rem; color:#64748b; margin-top:2px; }
+  .lookup-pill{
+    font-size:0.7rem; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap;
+    background:#ecfdf3; color:#16a34a; flex-shrink:0;
+  }
+  .lookup-empty{ text-align:center; color:#64748b; padding:40px 10px; font-size:0.9rem; }
 </style>
 </head>
 <body>
@@ -305,6 +345,7 @@
   <circle cx="34" cy="92" r="6" fill="#e08cb5" opacity="0.7"/>
 </svg>
 
+<div id="registerView">
 <header>
   <div class="header-top">
     <div class="title-block">
@@ -415,6 +456,23 @@
   </div>
 </div>
 
+</div>
+
+<div id="lookupView" class="lookup-view" style="display:none;">
+  <div class="lookup-inner">
+    <button class="lookup-back" id="lookupBackBtn">← Volver a registrar entradas</button>
+    <div class="lookup-count-card">
+      <div class="lookup-count-num" id="lookupCount">0</div>
+      <div class="lookup-count-lbl">personas dentro ahora mismo</div>
+    </div>
+    <div class="lookup-search-wrap">
+      <span>🔍</span>
+      <input type="text" id="lookupSearch" placeholder="Buscar quién ya entró...">
+    </div>
+    <div id="lookupResults"></div>
+  </div>
+</div>
+
 <footer>Evento · lista compartida entre todos los encargados de la entrada</footer>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
@@ -465,7 +523,7 @@ const BASE_NAMES = [
 "tia rocio y familia","Tio Nestor y familia","Tio Ricardo y familia","veronica",
 "Familia Vivas Bejarano","Wendy","yacer","Yaser","Yiny y familia","Yomara","yuber y diego",
 "Yuliana","Yulis y geids",
-"Panda y familia","Yeider","Lliana y Maria Teresa","Jairo y Familia","neidis y esposo","Familia Villabejape"
+"Panda","Yeider","Lliana y Maria Teresa","Jairo y Familia","neidis y esposo","Familia Villabejape"
 ];
 
 // guests: objeto { id: { name, type, count, checked, time, custom } }
@@ -532,13 +590,39 @@ function mergeMissingBaseGuests(){
 
 // Renombra invitados ya existentes cuyo nombre cambió en BASE_NAMES (ej. Erika -> Panda)
 function renameLegacyGuests(){
-  const renames = { 'Erika y familia': 'Panda y familia' };
+  const renames = { 'Erika y familia': 'Panda', 'Panda y familia': 'Panda' };
   let changed = false;
   Object.keys(guests).forEach(id => {
-    if(renames[guests[id].name]){
-      guests[id].name = renames[guests[id].name];
+    const oldName = guests[id].name;
+    if(renames[oldName]){
+      guests[id].name = renames[oldName];
+      guests[id].type = 'individual';
+      guests[id].count = guests[id].checked ? (guests[id].count || 1) : 1;
       changed = true;
     }
+  });
+  return changed;
+}
+
+// Si por algún cambio de nombre quedaron dos invitados con el mismo nombre, deja solo uno
+function dedupeGuestsByName(){
+  const seenIdByName = {};
+  let changed = false;
+  Object.keys(guests).forEach(id => {
+    const name = guests[id].name;
+    if(!(name in seenIdByName)){
+      seenIdByName[name] = id;
+      return;
+    }
+    const keptId = seenIdByName[name];
+    // preferir conservar el que ya está marcado como entrada
+    if(guests[id].checked && !guests[keptId].checked){
+      delete guests[keptId];
+      seenIdByName[name] = id;
+    } else {
+      delete guests[id];
+    }
+    changed = true;
   });
   return changed;
 }
@@ -562,7 +646,8 @@ async function loadState(){
       receivingRemoteUpdate = false;
       const addedNew = mergeMissingBaseGuests();
       const renamed = renameLegacyGuests();
-      if(addedNew || renamed){
+      const deduped = dedupeGuestsByName();
+      if(addedNew || renamed || deduped){
         render();
         scheduleSave();
       }
@@ -752,6 +837,10 @@ function render(){
   });
 
   updateStats();
+
+  if(typeof currentView !== 'undefined' && currentView === 'lookup'){
+    renderLookupView();
+  }
 }
 
 function updateStats(){
@@ -884,137 +973,60 @@ document.getElementById('deleteGuestConfirmBtn').addEventListener('click', () =>
   render();
 });
 
-// ---- Ventana: consultar entradas (solo lectura, busca y muestra quien ya entro) ----
-document.getElementById('lookupBtn').addEventListener('click', openLookupWindow);
+// ---- Vista de consulta (dentro del mismo HTML, en vivo) ----
+let currentView = 'register';
 
-function openLookupWindow(){
-  const configJson = JSON.stringify(firebaseConfig);
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Consultar entradas</title>
-<style>
-  :root{
-    --bg: #f4f6f8;
-    --panel: #ffffff;
-    --border: #e2e6ea;
-    --text: #1f2937;
-    --text-dim: #6b7280;
-    --accent: #2563eb;
-    --ok: #16a34a;
-    --ok-bg: #ecfdf3;
-  }
-  *{ box-sizing:border-box; }
-  body{
-    margin:0; min-height:100vh; background:var(--bg);
-    font-family:'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-    color:var(--text); padding:32px 16px 60px;
-  }
-  .wrap{ max-width:480px; margin:0 auto; }
-  h1{ font-size:1.3rem; margin:0 0 4px; text-align:center; }
-  .subtitle{ text-align:center; color:var(--text-dim); font-size:0.85rem; margin-bottom:22px; }
-  .search-box{
-    display:flex; align-items:center; gap:8px; background:var(--panel);
-    border:1px solid var(--border); border-radius:14px; padding:14px 16px;
-    box-shadow:0 2px 10px rgba(0,0,0,0.04); margin-bottom:18px;
-  }
-  .search-box input{
-    flex:1; border:none; outline:none; font-size:1rem; background:transparent; color:var(--text);
-  }
-  .status-line{ text-align:center; font-size:0.78rem; color:var(--text-dim); margin-bottom:18px; }
-  .result{
-    background:var(--panel); border:1px solid var(--border); border-radius:12px;
-    padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;
-    gap:10px;
-  }
-  .result .name{ font-weight:600; font-size:0.95rem; }
-  .result .meta{ font-size:0.75rem; color:var(--text-dim); margin-top:2px; }
-  .pill{
-    font-size:0.7rem; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap;
-  }
-  .pill.in{ background:var(--ok-bg); color:var(--ok); }
-  .pill.out{ background:#fef2f2; color:#dc2626; }
-  .empty{ text-align:center; color:var(--text-dim); padding:40px 10px; font-size:0.9rem; }
-</style>
-</head>
-<body>
-  <div class="wrap">
-    <h1>🔎 Consultar entradas</h1>
-    <p class="subtitle">Escribe un nombre para ver si ya registró su entrada.</p>
-    <div class="search-box">
-      <span>🔍</span>
-      <input type="text" id="q" placeholder="Buscar por nombre..." autofocus>
-    </div>
-    <p class="status-line" id="status">Conectando...</p>
-    <div id="results"></div>
-  </div>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"><\/script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"><\/script>
-<script>
-  const firebaseConfig = ${configJson};
-  let guests = {};
-  try{
-    firebase.initializeApp(firebaseConfig);
-    const ref = firebase.database().ref('evento_checkin_v1');
-    ref.on('value', (snap) => {
-      const data = snap.val();
-      guests = (data && data.guests) ? data.guests : {};
-      document.getElementById('status').textContent = 'Actualizado en vivo';
-      render();
-    }, (err) => {
-      document.getElementById('status').textContent = 'Error de conexión';
-    });
-  }catch(e){
-    document.getElementById('status').textContent = 'No se pudo conectar';
-  }
-
-  function escapeHtml(str){
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
-  }
-
-  function render(){
-    const q = document.getElementById('q').value.trim().toLowerCase();
-    const results = document.getElementById('results');
-    const ids = Object.keys(guests).filter(id => guests[id].name.toLowerCase().includes(q));
-    ids.sort((a,b) => guests[a].name.localeCompare(guests[b].name));
-
-    if(q === ''){
-      results.innerHTML = '<div class="empty">Escribe un nombre arriba para buscar 👆</div>';
-      return;
-    }
-    if(ids.length === 0){
-      results.innerHTML = '<div class="empty">No se encontró ningún invitado con ese nombre.</div>';
-      return;
-    }
-    results.innerHTML = ids.map(id => {
-      const g = guests[id];
-      const meta = g.checked ? ('Entró a las ' + (g.time || '')) : 'Aún no ha llegado';
-      return \`<div class="result">
-        <div>
-          <div class="name">\${escapeHtml(g.name)}</div>
-          <div class="meta">\${meta}</div>
-        </div>
-        <span class="pill \${g.checked ? 'in' : 'out'}">\${g.checked ? '✅ Dentro' : '⏳ Fuera'}</span>
-      </div>\`;
-    }).join('');
-  }
-
-  document.getElementById('q').addEventListener('input', render);
-  render();
-<\/script>
-</body>
-</html>`;
-
-  const win = window.open('', '_blank', 'width=520,height=760');
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  win.focus();
+function showRegisterView(){
+  currentView = 'register';
+  document.getElementById('registerView').style.display = '';
+  document.getElementById('lookupView').style.display = 'none';
 }
+
+function showLookupView(){
+  currentView = 'lookup';
+  document.getElementById('registerView').style.display = 'none';
+  document.getElementById('lookupView').style.display = 'block';
+  renderLookupView();
+}
+
+document.getElementById('lookupBtn').addEventListener('click', showLookupView);
+document.getElementById('lookupBackBtn').addEventListener('click', showRegisterView);
+document.getElementById('lookupSearch').addEventListener('input', renderLookupView);
+
+function renderLookupView(){
+  const q = document.getElementById('lookupSearch').value.trim().toLowerCase();
+  const results = document.getElementById('lookupResults');
+
+  const checkedIds = Object.keys(guests).filter(id => guests[id].checked);
+  const totalPersonas = checkedIds.reduce((sum, id) => sum + (guests[id].count || 1), 0);
+  document.getElementById('lookupCount').textContent = totalPersonas;
+
+  const filteredIds = checkedIds
+    .filter(id => guests[id].name.toLowerCase().includes(q))
+    .sort((a, b) => (guests[a].time || '').localeCompare(guests[b].time || ''));
+
+  if(checkedIds.length === 0){
+    results.innerHTML = "<div class='lookup-empty'>Aún no ha entrado nadie.</div>";
+    return;
+  }
+  if(filteredIds.length === 0){
+    results.innerHTML = "<div class='lookup-empty'>No se encontró ningún invitado con ese nombre entre los que ya entraron.</div>";
+    return;
+  }
+
+  results.innerHTML = filteredIds.map(id => {
+    const g = guests[id];
+    const personasTxt = g.count ? (g.count + (g.count === 1 ? ' persona' : ' personas')) : '';
+    return `<div class="lookup-result">
+      <div>
+        <div class="name">${escapeHtml(g.name)}</div>
+        <div class="meta">Entró a las ${g.time || ''} · ${personasTxt}</div>
+      </div>
+      <span class="lookup-pill">✅ Dentro</span>
+    </div>`;
+  }).join('');
+}
+
 
 // ---- Imprimir ----
 document.getElementById('printBtn').addEventListener('click', openPrintWindow);
